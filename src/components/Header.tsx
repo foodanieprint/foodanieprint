@@ -4,12 +4,15 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShoppingCart, User, Printer, LogOut, Shield, Menu, X } from 'lucide-react';
+import AuthModal from './AuthModal';
 
 export default function Header() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
 
   // 1. Verificar sesión de usuario
   const checkAuth = async () => {
@@ -139,10 +142,17 @@ export default function Header() {
                 </button>
               </div>
             ) : (
-              <Link href="/dashboard" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button 
+                onClick={() => {
+                  setAuthModalTab('login');
+                  setIsAuthModalOpen(true);
+                }} 
+                className="btn btn-secondary btn-sm" 
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
                 <User size={14} />
                 <span>Sign In</span>
-              </Link>
+              </button>
             )}
 
             {/* HAMBURGER TOGGLE BUTTON */}
@@ -185,6 +195,14 @@ export default function Header() {
           </div>
         </div>
       )}
+
+      {/* Auth Modal Component */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        initialTab={authModalTab} 
+      />
     </>
   );
 }
+
