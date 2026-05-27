@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [designs, setDesigns] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   // 1. Cargar estado de sesión inicial
   const checkSession = async () => {
@@ -48,6 +49,8 @@ export default function DashboardPage() {
     } catch (err) {
       console.error(err);
       setLoadingData(false);
+    } finally {
+      setCheckingAuth(false);
     }
   };
 
@@ -134,6 +137,16 @@ export default function DashboardPage() {
     // Usaremos un filtro local para actualizar la UI, ya que la base de datos se limpia en cascada al borrar.
     setDesigns(designs.filter(d => d.id !== id));
   };
+
+  // RENDER ESTADO COMPROBACIÓN AUTENTICACIÓN
+  if (checkingAuth) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '4px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
+        <p style={{ color: 'var(--text-secondary)' }}>Checking credentials...</p>
+      </div>
+    );
+  }
 
   // RENDER ESTADO CARGANDO
   if (loadingData && isLoggedIn) {
