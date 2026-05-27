@@ -83,11 +83,11 @@ export default function AuthModal({ isOpen: propIsOpen, onClose: propOnClose, in
         window.dispatchEvent(new Event('printear_auth_change')); // Sync header
         handleClose();
       } else {
-        setError(data.error || 'Credenciales inválidas');
+        setError(data.error || 'Invalid credentials');
       }
     } catch (err) {
       console.error(err);
-      setError('Error al conectar con el servidor');
+      setError('Error connecting to the server');
     } finally {
       setLoading(false);
     }
@@ -109,11 +109,11 @@ export default function AuthModal({ isOpen: propIsOpen, onClose: propOnClose, in
         window.dispatchEvent(new Event('printear_auth_change')); // Sync header
         handleClose();
       } else {
-        setError(data.error || 'Error al crear la cuenta');
+        setError(data.error || 'Error creating account');
       }
     } catch (err) {
       console.error(err);
-      setError('Error al conectar con el servidor');
+      setError('Error connecting to the server');
     } finally {
       setLoading(false);
     }
@@ -256,7 +256,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose: propOnClose, in
                     style={{ paddingLeft: '40px' }} 
                     value={loginEmail} 
                     onChange={(e) => setLoginEmail(e.target.value)} 
-                    placeholder="cliente@printear.com" 
+                    placeholder="youremailhere@gmail.com" 
                   />
                   <Mail size={16} style={{ position: 'absolute', left: '14px', top: '13px', color: 'var(--text-muted)' }} />
                 </div>
@@ -287,10 +287,6 @@ export default function AuthModal({ isOpen: propIsOpen, onClose: propOnClose, in
                 <LogIn size={16} />
                 <span>{loading ? 'Signing In...' : 'Sign In'}</span>
               </button>
-
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '4px' }}>
-                Demo Account: <strong>cliente@printear.com</strong> / <strong>cliente123</strong>
-              </p>
             </form>
           ) : (
             <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -325,7 +321,7 @@ export default function AuthModal({ isOpen: propIsOpen, onClose: propOnClose, in
                     style={{ paddingLeft: '40px' }} 
                     value={signupEmail} 
                     onChange={(e) => setSignupEmail(e.target.value)} 
-                    placeholder="john@company.com" 
+                    placeholder="youremailhere@gmail.com" 
                   />
                   <Mail size={16} style={{ position: 'absolute', left: '14px', top: '13px', color: 'var(--text-muted)' }} />
                 </div>

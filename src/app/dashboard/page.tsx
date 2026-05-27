@@ -179,7 +179,7 @@ export default function DashboardPage() {
                 <div className="form-group" style={{ marginBottom: '0' }}>
                   <label className="form-label">Email Address</label>
                   <div style={{ position: 'relative' }}>
-                    <input type="email" required className="input-field" style={{ paddingLeft: '40px' }} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="cliente@printear.com" />
+                    <input type="email" required className="input-field" style={{ paddingLeft: '40px' }} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="youremailhere@gmail.com" />
                     <Mail size={16} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
                   </div>
                 </div>
@@ -195,10 +195,6 @@ export default function DashboardPage() {
                 <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }}>
                   <LogIn size={16} /> Sign In to My Account
                 </button>
-                
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                  Demo credentials: <strong>cliente@printear.com</strong> / <strong>cliente123</strong>
-                </p>
               </form>
             ) : (
               /* TAB SIGNUP */
