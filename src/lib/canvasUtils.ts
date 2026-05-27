@@ -1,0 +1,78 @@
+export function getCanvasDimensions(product: any, selectedSpecs: Record<string, string>) {
+  if (!product) return { width: 1050, height: 600 };
+
+  let baseWidth = product.widthPx || 1050;
+  let baseHeight = product.heightPx || 600;
+
+  const sizeVal = selectedSpecs['Size'] || selectedSpecs['Tamaño'] || selectedSpecs['size'] || '';
+  if (sizeVal) {
+    const selectedSpec = product.specs?.find(
+      (s: any) => (s.group === 'Size' || s.group === 'Tamaño') && s.value === sizeVal
+    );
+    if (selectedSpec && selectedSpec.horizontal > 0 && selectedSpec.vertical > 0) {
+      const metric = (selectedSpec.metric || '').toLowerCase().trim();
+      let calculatedW = selectedSpec.horizontal;
+      let calculatedH = selectedSpec.vertical;
+
+      if (metric === 'in') {
+        calculatedW = selectedSpec.horizontal * 300;
+        calculatedH = selectedSpec.vertical * 300;
+      } else if (metric === 'cm') {
+        calculatedW = selectedSpec.horizontal * 118.11;
+        calculatedH = selectedSpec.vertical * 118.11;
+      } else if (metric === 'px') {
+        calculatedW = selectedSpec.horizontal;
+        calculatedH = selectedSpec.vertical;
+      } else {
+        // Smart fallback: if values are small, assume inches
+        const scale = selectedSpec.horizontal <= 30 ? 300 : 1;
+        calculatedW = selectedSpec.horizontal * scale;
+        calculatedH = selectedSpec.vertical * scale;
+      }
+
+      baseWidth = Math.round(calculatedW);
+      baseHeight = Math.round(calculatedH);
+    } else {
+      // Fallback to legacy regex string parsing if no structured dimensions exist
+      const cleanStr = sizeVal.toLowerCase().trim();
+      const match = cleanStr.match(/([0-9.]+)\s*(?:x|by|\*)\s*([0-9.]+)/);
+      if (match) {
+        const num1 = parseFloat(match[1]);
+        const num2 = parseFloat(match[2]);
+        if (!isNaN(num1) && !isNaN(num2)) {
+          const maxParsed = Math.max(num1, num2);
+          const maxProductBase = Math.max(product.widthPx || 1050, product.heightPx || 600);
+          const factor = maxProductBase / maxParsed;
+          
+          let calculatedW = Math.round(num1 * factor);
+          let calculatedH = Math.round(num2 * factor);
+          
+          const isHorizontalDefault = (product.widthPx || 1050) >= (product.heightPx || 600);
+          if (isHorizontalDefault) {
+            baseWidth = Math.max(calculatedW, calculatedH);
+            baseHeight = Math.min(calculatedW, calculatedH);
+          } else {
+            baseWidth = Math.min(calculatedW, calculatedH);
+            baseHeight = Math.max(calculatedW, calculatedH);
+          }
+        }
+      }
+    }
+  }
+
+  // Adjust for Orientation changes
+  const orientationVal = selectedSpecs['Orientation'] || selectedSpecs['Orientación'] || selectedSpecs['Orientacion'] || selectedSpecs['orientation'] || '';
+  if (orientationVal.toLowerCase().includes('vertical') || orientationVal.toLowerCase() === 'vertical') {
+    const w = baseWidth;
+    const h = baseHeight;
+    baseWidth = Math.min(w, h);
+    baseHeight = Math.max(w, h);
+  } else if (orientationVal.toLowerCase().includes('horizontal') || orientationVal.toLowerCase() === 'horizontal') {
+    const w = baseWidth;
+    const h = baseHeight;
+    baseWidth = Math.max(w, h);
+    baseHeight = Math.min(w, h);
+  }
+
+  return { width: baseWidth, height: baseHeight };
+}
