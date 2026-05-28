@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { getFirebaseStorage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export async function POST(req: Request) {
   try {
@@ -19,24 +19,32 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Save path inside the public/uploads directory
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    
-    // Ensure the directory exists
-    await mkdir(uploadDir, { recursive: true });
-
     // Generate a unique filename using timestamp and safe characters
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueFilename = `${Date.now()}-${safeName}`;
-    const filePath = join(uploadDir, uniqueFilename);
 
-    await writeFile(filePath, buffer);
-    
-    // Return relative URL for Next.js static asset serving
-    const relativeUrl = `/uploads/${uniqueFilename}`;
-    return NextResponse.json({ url: relativeUrl });
+    // Get Firebase Storage dynamically
+    let storage;
+    try {
+      storage = await getFirebaseStorage();
+    } catch (configError: any) {
+      return NextResponse.json({ error: configError.message }, { status: 400 });
+    }
+
+    // Create Firebase Storage reference
+    const storageRef = ref(storage, `uploads/${uniqueFilename}`);
+
+    // Upload buffer to Firebase Storage
+    await uploadBytes(storageRef, buffer, {
+      contentType: file.type,
+    });
+
+    // Get the public download URL
+    const downloadUrl = await getDownloadURL(storageRef);
+
+    return NextResponse.json({ url: downloadUrl });
   } catch (error) {
-    console.error('Error during file upload:', error);
+    console.error('Error during file upload to Firebase Storage:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }

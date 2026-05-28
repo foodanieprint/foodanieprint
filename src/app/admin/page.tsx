@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Shield, BarChart3, ShoppingBag, FolderPlus, Download, 
   RefreshCw, CheckCircle, Truck, Package, ArrowLeft,
-  Plus, Trash2, HelpCircle, Palette, Edit, Upload, GripVertical
+  Plus, Trash2, HelpCircle, Palette, Edit, Upload, GripVertical, Settings
 } from 'lucide-react';
 import { getCanvasDimensions } from '@/lib/canvasUtils';
 
@@ -16,7 +16,16 @@ export default function AdminPage() {
   const [loadingAdmin, setLoadingAdmin] = useState(true);
 
   // Navegación mediante tabs en React
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'create-product' | 'options-attributes' | 'create-option' | 'categories' | 'create-category'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'create-product' | 'options-attributes' | 'create-option' | 'categories' | 'create-category' | 'settings'>('dashboard');
+
+  // Firebase Storage Settings State
+  const [firebaseApiKey, setFirebaseApiKey] = useState('');
+  const [firebaseAuthDomain, setFirebaseAuthDomain] = useState('');
+  const [firebaseProjectId, setFirebaseProjectId] = useState('');
+  const [firebaseStorageBucket, setFirebaseStorageBucket] = useState('');
+  const [firebaseMessagingSenderId, setFirebaseMessagingSenderId] = useState('');
+  const [firebaseAppId, setFirebaseAppId] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Datos de Administración
   const [orders, setOrders] = useState<any[]>([]);
@@ -157,10 +166,32 @@ export default function AdminPage() {
 
       // Cargar Categorías
       loadCategoriesData();
+
+      // Cargar Configuración de Firebase
+      loadSettingsData();
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingOrders(false);
+    }
+  };
+
+  const loadSettingsData = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.config) {
+          setFirebaseApiKey(data.config.apiKey || '');
+          setFirebaseAuthDomain(data.config.authDomain || '');
+          setFirebaseProjectId(data.config.projectId || '');
+          setFirebaseStorageBucket(data.config.storageBucket || '');
+          setFirebaseMessagingSenderId(data.config.messagingSenderId || '');
+          setFirebaseAppId(data.config.appId || '');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching settings:', err);
     }
   };
 
@@ -191,6 +222,39 @@ export default function AdminPage() {
       console.error(err);
     } finally {
       setLoadingCategories(false);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const config = {
+        apiKey: firebaseApiKey,
+        authDomain: firebaseAuthDomain,
+        projectId: firebaseProjectId,
+        storageBucket: firebaseStorageBucket,
+        messagingSenderId: firebaseMessagingSenderId,
+        appId: firebaseAppId
+      };
+
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config })
+      });
+
+      if (res.ok) {
+        alert('General settings successfully updated in the database!');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to save settings');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error connecting to settings API');
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -771,6 +835,16 @@ export default function AdminPage() {
           <li className={`admin-sidebar-item ${activeTab === 'options-attributes' || activeTab === 'create-option' ? 'active' : ''}`}>
             <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('options-attributes'); }}>
               <Palette size={18} style={{ color: 'var(--accent-primary)' }} /> Options & Attributes
+            </a>
+          </li>
+
+          {/* Sub-opción para Configuración General */}
+          <li className="mobile-hide" style={{ paddingLeft: '20px', marginTop: '16px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>General Settings</span>
+          </li>
+          <li className={`admin-sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}>
+            <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('settings'); }}>
+              <Settings size={18} style={{ color: 'var(--accent-primary)' }} /> Storage Settings
             </a>
           </li>
         </ul>
@@ -1964,6 +2038,107 @@ export default function AdminPage() {
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '14px' }}>
                   {editingCategoryId ? 'Update Category' : 'Publish Category'}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {/* SECCIÓN STORAGE SETTINGS */}
+        {activeTab === 'settings' && (
+          <section className="glass-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '22px', fontFamily: 'var(--font-title)', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Settings size={22} style={{ color: 'var(--accent-primary)' }} />
+              Storage Configuration Settings
+            </h2>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6' }}>
+              Enter your Firebase storage credentials below to enable permanent, secure file uploads. These credentials will be stored securely in the database and loaded dynamically by the upload engine, bypassing the need for local .env files.
+            </p>
+
+            <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="form-group" style={{ marginBottom: '0' }}>
+                <label className="form-label">Firebase API Key (apiKey)</label>
+                <input 
+                  type="password" 
+                  required 
+                  className="input-field" 
+                  value={firebaseApiKey} 
+                  onChange={(e) => setFirebaseApiKey(e.target.value)} 
+                  placeholder="AIzaSy..." 
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Auth Domain (authDomain)</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="input-field" 
+                    value={firebaseAuthDomain} 
+                    onChange={(e) => setFirebaseAuthDomain(e.target.value)} 
+                    placeholder="project-id.firebaseapp.com" 
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Project ID (projectId)</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="input-field" 
+                    value={firebaseProjectId} 
+                    onChange={(e) => setFirebaseProjectId(e.target.value)} 
+                    placeholder="project-id" 
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Storage Bucket (storageBucket)</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="input-field" 
+                    value={firebaseStorageBucket} 
+                    onChange={(e) => setFirebaseStorageBucket(e.target.value)} 
+                    placeholder="project-id.appspot.com" 
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Messaging Sender ID</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="input-field" 
+                    value={firebaseMessagingSenderId} 
+                    onChange={(e) => setFirebaseMessagingSenderId(e.target.value)} 
+                    placeholder="e.g. 123456789012" 
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '8px' }}>
+                <label className="form-label">Application ID (appId)</label>
+                <input 
+                  type="text" 
+                  required 
+                  className="input-field" 
+                  value={firebaseAppId} 
+                  onChange={(e) => setFirebaseAppId(e.target.value)} 
+                  placeholder="1:123456789012:web:abcd1234efgh" 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '14px' }} onClick={() => setActiveTab('dashboard')}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '14px' }} disabled={savingSettings}>
+                  {savingSettings ? 'Saving Configuration...' : 'Save Storage Configuration'}
                 </button>
               </div>
             </form>
