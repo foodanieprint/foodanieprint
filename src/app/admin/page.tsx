@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [firebaseStorageBucket, setFirebaseStorageBucket] = useState('');
   const [firebaseMessagingSenderId, setFirebaseMessagingSenderId] = useState('');
   const [firebaseAppId, setFirebaseAppId] = useState('');
+  const [firebaseMeasurementId, setFirebaseMeasurementId] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
   // Datos de Administración
@@ -188,6 +189,7 @@ export default function AdminPage() {
           setFirebaseStorageBucket(data.config.storageBucket || '');
           setFirebaseMessagingSenderId(data.config.messagingSenderId || '');
           setFirebaseAppId(data.config.appId || '');
+          setFirebaseMeasurementId(data.config.measurementId || '');
         }
       }
     } catch (err) {
@@ -235,7 +237,8 @@ export default function AdminPage() {
         projectId: firebaseProjectId,
         storageBucket: firebaseStorageBucket,
         messagingSenderId: firebaseMessagingSenderId,
-        appId: firebaseAppId
+        appId: firebaseAppId,
+        measurementId: firebaseMeasurementId
       };
 
       const res = await fetch('/api/settings', {
@@ -2121,16 +2124,29 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '8px' }}>
-                <label className="form-label">Application ID (appId)</label>
-                <input 
-                  type="text" 
-                  required 
-                  className="input-field" 
-                  value={firebaseAppId} 
-                  onChange={(e) => setFirebaseAppId(e.target.value)} 
-                  placeholder="1:123456789012:web:abcd1234efgh" 
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '8px' }}>
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Application ID (appId)</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="input-field" 
+                    value={firebaseAppId} 
+                    onChange={(e) => setFirebaseAppId(e.target.value)} 
+                    placeholder="1:123456789012:web:abcd1234efgh" 
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Measurement ID (measurementId - Optional)</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    value={firebaseMeasurementId} 
+                    onChange={(e) => setFirebaseMeasurementId(e.target.value)} 
+                    placeholder="G-XXXXXXXXXX" 
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
