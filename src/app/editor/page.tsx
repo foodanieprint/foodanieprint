@@ -34,6 +34,7 @@ function EditorContent() {
   
   const productSlug = searchParams.get('product') || 'business-cards';
   const designId = searchParams.get('design');
+  const templateId = searchParams.get('template');
 
   // Loading States
   const [loading, setLoading] = useState(true);
@@ -99,12 +100,18 @@ function EditorContent() {
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [bleedValue, setBleedValue] = useState(0.25);
+  const [dpiValue, setDpiValue] = useState(300);
 
   // Load templates list for product
-  const loadTemplates = async (productId: string) => {
+  const loadTemplates = async (productId: string, currentSpecs?: Record<string, string>) => {
     setLoadingTemplates(true);
     try {
-      const res = await fetch(`/api/templates?productId=${productId}`);
+      let url = `/api/templates?productId=${productId}`;
+      if (currentSpecs) {
+        url += `&specs=${encodeURIComponent(JSON.stringify(currentSpecs))}`;
+      }
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setTemplates(data);
@@ -116,7 +123,14 @@ function EditorContent() {
     }
   };
 
-  // Check user role on mount
+  // Refetch templates when product or selectedSpecs changes
+  useEffect(() => {
+    if (product && product.id) {
+      loadTemplates(product.id, selectedSpecs);
+    }
+  }, [product, selectedSpecs]);
+
+  // Check user role and load designer settings on mount
   useEffect(() => {
     async function checkUser() {
       try {
@@ -131,7 +145,22 @@ function EditorContent() {
         console.error('Error checking auth:', err);
       }
     }
+    async function loadDesignerSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.designer) {
+            setBleedValue(Number(data.designer.bleed ?? 0.25));
+            setDpiValue(Number(data.designer.dpi ?? 300));
+          }
+        }
+      } catch (err) {
+        console.error('Error loading designer settings in editor:', err);
+      }
+    }
     checkUser();
+    loadDesignerSettings();
   }, []);
 
   // 1. Fetch Product details from API
@@ -142,9 +171,6 @@ function EditorContent() {
         if (!res.ok) throw new Error('Product not found');
         const prodData = await res.json();
         setProduct(prodData);
-
-        // Load dynamic templates
-        loadTemplates(prodData.id);
         
         // Inicializar especificaciones por defecto o cargadas de la URL
         const initialSpecs: Record<string, string> = {};
@@ -160,8 +186,35 @@ function EditorContent() {
         });
         setSelectedSpecs(initialSpecs);
 
-        // Si estamos editando un diseño existente, cargarlo
-        if (designId) {
+        // Si estamos editando una plantilla existente (Admin)
+        if (templateId) {
+          const resTpl = await fetch(`/api/templates?id=${templateId}`);
+          if (resTpl.ok) {
+            const template = await resTpl.json();
+            if (template) {
+              setCanvasName(template.name);
+              // Si la plantilla tiene targetSpecs, inicializar las especificaciones del editor
+              if (template.targetSpecs) {
+                const specs = typeof template.targetSpecs === 'string' ? JSON.parse(template.targetSpecs) : template.targetSpecs;
+                setSelectedSpecs(prev => ({ ...prev, ...specs }));
+              }
+              const parsed = typeof template.canvasData === 'string' ? JSON.parse(template.canvasData) : template.canvasData;
+              if (parsed && (parsed.front || parsed.back)) {
+                const front = parsed.front || [];
+                const back = parsed.back || [];
+                setFrontElements(front);
+                setBackElements(back);
+                setCanvasElements(front);
+                saveToHistory(front);
+              } else {
+                setFrontElements(parsed || []);
+                setCanvasElements(parsed || []);
+                saveToHistory(parsed || []);
+              }
+            }
+          }
+        } else if (designId) {
+          // Si estamos editando un diseño existente, cargarlo
           const resDesign = await fetch('/api/designs');
           if (resDesign.ok) {
             const designs = await resDesign.json();
@@ -198,15 +251,15 @@ function EditorContent() {
       }
     }
     loadData();
-  }, [productSlug, designId]);
+  }, [productSlug, designId, templateId]);
 
   // Dynamic Canvas Dimension Calculation (Size & Orientation binding)
   useEffect(() => {
     if (!product) return;
-    const { width, height } = getCanvasDimensions(product, selectedSpecs);
+    const { width, height } = getCanvasDimensions(product, selectedSpecs, bleedValue, dpiValue);
     setCanvasWidth(width);
     setCanvasHeight(height);
-  }, [selectedSpecs, product]);
+  }, [selectedSpecs, product, bleedValue, dpiValue]);
 
   // 2. Calcular precio dinámico según especificaciones elegidas
   useEffect(() => {
@@ -564,10 +617,12 @@ function EditorContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: templateId || undefined,
           productId: product.id,
           name: templateName,
           canvasData: canvasBlobData,
           previewUrl: '', // Default fallback will be handled by route
+          targetSpecs: selectedSpecs,
         }),
       });
 
@@ -580,7 +635,7 @@ function EditorContent() {
       setShowSaveTemplateModal(false);
       setTemplateName('');
       // Reload templates list
-      loadTemplates(product.id);
+      loadTemplates(product.id, selectedSpecs);
     } catch (err: any) {
       console.error(err);
       alert(err.message || 'Error saving template.');
@@ -931,20 +986,24 @@ function EditorContent() {
   const selectedSpec = product?.specs?.find((s: any) => (s.group === 'Size' || s.group === 'Tamaño') && s.value === sizeVal);
   const metric = (selectedSpec?.metric || 'in').toLowerCase().trim();
 
-  let pxPerUnit = 300;
+  let pxPerUnit = dpiValue;
   let unitLabel = 'in';
 
   if (metric === 'cm') {
-    pxPerUnit = 118.11;
+    pxPerUnit = dpiValue / 2.54;
     unitLabel = 'cm';
   } else if (metric === 'px') {
     pxPerUnit = 100;
     unitLabel = 'px';
   } else if (metric === 'none') {
     const isSmall = selectedSpec && selectedSpec.horizontal <= 30;
-    pxPerUnit = isSmall ? 300 : 100;
+    pxPerUnit = isSmall ? dpiValue : 100;
     unitLabel = isSmall ? 'in' : 'px';
   }
+
+  const bleedPx = metric === 'cm' ? (bleedValue * 2.54) * pxPerUnit : (metric === 'px' ? bleedValue * 100 : bleedValue * pxPerUnit);
+  const cutLineOffset = bleedPx / 2;
+  const safeZoneOffset = cutLineOffset + (0.125 * pxPerUnit); // 0.125 inches inside the cut line
 
   const majorStep = pxPerUnit;
   const mediumStep = pxPerUnit / 2;
@@ -1880,12 +1939,40 @@ function EditorContent() {
             }}
           >
           {/* Línea de sangrado (azul/roja) */}
-          {showBleed && <div className="canvas-bleed-line"></div>}
+          {showBleed && (
+            <div 
+              className="canvas-bleed-line"
+              style={{
+                position: 'absolute',
+                top: `${cutLineOffset}px`,
+                left: `${cutLineOffset}px`,
+                right: `${cutLineOffset}px`,
+                bottom: `${cutLineOffset}px`,
+                border: '1.5px solid #ef4444',
+                pointerEvents: 'none',
+                zIndex: 50
+              }}
+            >
+              <span style={{ position: 'absolute', top: '-14px', left: '4px', fontSize: '9px', color: 'rgba(239, 68, 68, 0.75)', fontFamily: 'monospace', fontWeight: 'bold' }}>CUT / TRIM LINE</span>
+            </div>
+          )}
           
           {/* Línea de área segura (verde) */}
           {showSafeZone && (
-            <div className="canvas-safe-zone">
-              <span style={{ position: 'absolute', top: '2px', left: '4px', fontSize: '9px', color: 'rgba(22, 163, 74, 0.5)', fontFamily: 'monospace' }}>SAFE PREPRESS TRIM MARGIN</span>
+            <div 
+              className="canvas-safe-zone"
+              style={{
+                position: 'absolute',
+                top: `${safeZoneOffset}px`,
+                left: `${safeZoneOffset}px`,
+                right: `${safeZoneOffset}px`,
+                bottom: `${safeZoneOffset}px`,
+                border: '1.5px dashed #16a34a',
+                pointerEvents: 'none',
+                zIndex: 50
+              }}
+            >
+              <span style={{ position: 'absolute', top: '2px', left: '4px', fontSize: '9px', color: 'rgba(22, 163, 74, 0.5)', fontFamily: 'monospace' }}>SAFE PREPRESS LIMIT</span>
             </div>
           )}
 

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Shield, BarChart3, ShoppingBag, FolderPlus, Download, 
   RefreshCw, CheckCircle, Truck, Package, ArrowLeft,
-  Plus, Trash2, HelpCircle, Palette, Edit, Upload, GripVertical, Settings
+  Plus, Trash2, HelpCircle, Palette, Edit, Upload, GripVertical, Settings, ArrowRight, Sliders
 } from 'lucide-react';
 import { getCanvasDimensions } from '@/lib/canvasUtils';
 
@@ -16,7 +16,7 @@ export default function AdminPage() {
   const [loadingAdmin, setLoadingAdmin] = useState(true);
 
   // Navegación mediante tabs en React
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'create-product' | 'options-attributes' | 'create-option' | 'categories' | 'create-category' | 'settings' | 'templates'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'create-product' | 'options-attributes' | 'create-option' | 'categories' | 'create-category' | 'settings' | 'templates' | 'designer-settings'>('dashboard');
 
   // Firebase Storage Settings State
   const [firebaseApiKey, setFirebaseApiKey] = useState('');
@@ -28,9 +28,15 @@ export default function AdminPage() {
   const [firebaseMeasurementId, setFirebaseMeasurementId] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Designer Settings State
+  const [designerBleed, setDesignerBleed] = useState('0.25');
+  const [designerDpi, setDesignerDpi] = useState('300');
+
   // Admin Templates State
   const [adminTemplates, setAdminTemplates] = useState<any[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [selectedProductSlugForTemplate, setSelectedProductSlugForTemplate] = useState('');
 
   const loadAdminTemplates = async () => {
     setLoadingTemplates(true);
@@ -223,14 +229,18 @@ export default function AdminPage() {
       const res = await fetch('/api/settings');
       if (res.ok) {
         const data = await res.json();
-        if (data.config) {
-          setFirebaseApiKey(data.config.apiKey || '');
-          setFirebaseAuthDomain(data.config.authDomain || '');
-          setFirebaseProjectId(data.config.projectId || '');
-          setFirebaseStorageBucket(data.config.storageBucket || '');
-          setFirebaseMessagingSenderId(data.config.messagingSenderId || '');
-          setFirebaseAppId(data.config.appId || '');
-          setFirebaseMeasurementId(data.config.measurementId || '');
+        if (data.firebase) {
+          setFirebaseApiKey(data.firebase.apiKey || '');
+          setFirebaseAuthDomain(data.firebase.authDomain || '');
+          setFirebaseProjectId(data.firebase.projectId || '');
+          setFirebaseStorageBucket(data.firebase.storageBucket || '');
+          setFirebaseMessagingSenderId(data.firebase.messagingSenderId || '');
+          setFirebaseAppId(data.firebase.appId || '');
+          setFirebaseMeasurementId(data.firebase.measurementId || '');
+        }
+        if (data.designer) {
+          setDesignerBleed(String(data.designer.bleed ?? '0.25'));
+          setDesignerDpi(String(data.designer.dpi ?? '300'));
         }
       }
     } catch (err) {
@@ -272,7 +282,7 @@ export default function AdminPage() {
     e.preventDefault();
     setSavingSettings(true);
     try {
-      const config = {
+      const firebase = {
         apiKey: firebaseApiKey,
         authDomain: firebaseAuthDomain,
         projectId: firebaseProjectId,
@@ -282,10 +292,15 @@ export default function AdminPage() {
         measurementId: firebaseMeasurementId
       };
 
+      const designer = {
+        bleed: parseFloat(designerBleed) || 0.25,
+        dpi: parseInt(designerDpi) || 300
+      };
+
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config })
+        body: JSON.stringify({ firebase, designer })
       });
 
       if (res.ok) {
@@ -788,7 +803,9 @@ export default function AdminPage() {
       ? JSON.parse(item.selectedSpecs) 
       : item.selectedSpecs || {};
 
-    const { width, height } = getCanvasDimensions(item.product, specs);
+    const bleed = parseFloat(designerBleed) || 0.25;
+    const dpi = parseInt(designerDpi) || 300;
+    const { width, height } = getCanvasDimensions(item.product, specs, bleed, dpi);
 
     const downloadSide = (elements: any[], suffix: string) => {
       let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="background:#ffffff;">`;
@@ -894,6 +911,11 @@ export default function AdminPage() {
           <li className={`admin-sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}>
             <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('settings'); }}>
               <Settings size={18} style={{ color: 'var(--accent-primary)' }} /> Storage Settings
+            </a>
+          </li>
+          <li className={`admin-sidebar-item ${activeTab === 'designer-settings' ? 'active' : ''}`}>
+            <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('designer-settings'); }}>
+              <Sliders size={18} style={{ color: 'var(--accent-primary)' }} /> Designer Settings
             </a>
           </li>
         </ul>
@@ -1062,7 +1084,9 @@ export default function AdminPage() {
                                       const specs = typeof selectedProductionItem.selectedSpecs === 'string' 
                                         ? JSON.parse(selectedProductionItem.selectedSpecs) 
                                         : selectedProductionItem.selectedSpecs || {};
-                                      const { width: dynW, height: dynH } = getCanvasDimensions(selectedProductionItem.product, specs);
+                                      const bleed = parseFloat(designerBleed) || 0.25;
+                                      const dpi = parseInt(designerDpi) || 300;
+                                      const { width: dynW, height: dynH } = getCanvasDimensions(selectedProductionItem.product, specs, bleed, dpi);
                                       
                                       const parsedCanvas = typeof selectedProductionItem.customDesign.canvasData === 'string' 
                                         ? JSON.parse(selectedProductionItem.customDesign.canvasData) 
@@ -2207,6 +2231,58 @@ export default function AdminPage() {
           </section>
         )}
 
+        {/* SECCIÓN DESIGNER SETTINGS */}
+        {activeTab === 'designer-settings' && (
+          <section className="glass-card" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '22px', fontFamily: 'var(--font-title)', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sliders size={22} style={{ color: 'var(--accent-primary)' }} />
+              Designer Configuration Settings
+            </h2>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6' }}>
+              Configure editor workspace settings. Define the bleed margins (in inches) to expand the interactive designer canvas and final high-resolution export dimensions. Set the DPI resolution for calculations.
+            </p>
+
+            <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Canvas Bleed Margin (inches)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    required 
+                    className="input-field" 
+                    value={designerBleed} 
+                    onChange={(e) => setDesignerBleed(e.target.value)} 
+                    placeholder="e.g. 0.25" 
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Export Resolution DPI</label>
+                  <input 
+                    type="number" 
+                    required 
+                    className="input-field" 
+                    value={designerDpi} 
+                    onChange={(e) => setDesignerDpi(e.target.value)} 
+                    placeholder="e.g. 300" 
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '14px' }} onClick={() => setActiveTab('dashboard')}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 2, padding: '14px' }} disabled={savingSettings}>
+                  {savingSettings ? 'Saving Configuration...' : 'Save Designer Settings'}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
         {/* SECCIÓN TEMPLATES MANAGER */}
         {activeTab === 'templates' && (
           <section className="glass-card" style={{ padding: '32px' }}>
@@ -2218,6 +2294,18 @@ export default function AdminPage() {
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>View and delete design templates created by administrators for customized product configurations.</p>
               </div>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  if (products.length > 0) {
+                    setSelectedProductSlugForTemplate(products[0].slug);
+                  }
+                  setShowCreateTemplateModal(true);
+                }} 
+                style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
+              >
+                <Plus size={16} /> Create Template
+              </button>
             </div>
 
             {loadingTemplates ? (
@@ -2241,7 +2329,16 @@ export default function AdminPage() {
                   <tbody>
                     {adminTemplates.map((template) => (
                       <tr key={template.id}>
-                        <td style={{ fontWeight: 'bold' }}>{template.name}</td>
+                        <td style={{ fontWeight: 'bold' }}>
+                          <div>{template.name}</div>
+                          {template.targetSpecs && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'normal', marginTop: '4px' }}>
+                              {Object.entries(
+                                typeof template.targetSpecs === 'string' ? JSON.parse(template.targetSpecs) : template.targetSpecs
+                              ).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                            </div>
+                          )}
+                        </td>
                         <td>{template.product?.name || 'Unknown Product'} <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>({template.product?.slug})</span></td>
                         <td>{new Date(template.createdAt).toLocaleDateString()}</td>
                         <td>
@@ -2251,7 +2348,16 @@ export default function AdminPage() {
                             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No Preview</span>
                           )}
                         </td>
-                        <td>
+                        <td style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <a 
+                            href={`/editor?product=${template.product?.slug || ''}&template=${template.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-secondary btn-sm"
+                            style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)', background: 'rgba(0, 102, 204, 0.05)', padding: '6px 12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
+                          >
+                            <Edit size={12} style={{ marginRight: '4px' }} /> Edit
+                          </a>
                           <button 
                             className="btn btn-secondary btn-sm" 
                             style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', padding: '6px 12px', cursor: 'pointer' }} 
@@ -2264,6 +2370,57 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* MODAL CREAR TEMPLATE (SELECCIÓN DE PRODUCTO BASE) */}
+            {showCreateTemplateModal && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+                <div className="glass-card" style={{ background: '#ffffff', padding: '32px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-color)' }}>
+                  <h3 style={{ fontSize: '20px', fontFamily: 'var(--font-title)', fontWeight: 'bold', margin: '0 0 12px 0', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Palette size={20} style={{ color: 'var(--accent-primary)' }} /> Create New Template
+                  </h3>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 24px 0', lineHeight: '1.5' }}>
+                    Design templates visually using the Canvas Editor. Choose a base product catalog entry to launch the designer in a new workspace window.
+                  </p>
+                  
+                  <div className="form-group" style={{ marginBottom: '24px' }}>
+                    <label className="form-label" style={{ fontWeight: 'bold', color: '#374151', fontSize: '12px' }}>Select Base Product</label>
+                    <select
+                      className="input-field"
+                      style={{ padding: '12px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '6px', width: '100%', fontSize: '14px' }}
+                      value={selectedProductSlugForTemplate}
+                      onChange={(e) => setSelectedProductSlugForTemplate(e.target.value)}
+                    >
+                      {products.map((prod) => (
+                        <option key={prod.id} value={prod.slug}>
+                          {prod.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      style={{ padding: '10px 18px', cursor: 'pointer' }}
+                      onClick={() => setShowCreateTemplateModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <a 
+                      href={`/editor?product=${selectedProductSlugForTemplate}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-primary"
+                      style={{ padding: '10px 18px', display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', cursor: 'pointer' }}
+                      onClick={() => setShowCreateTemplateModal(false)}
+                    >
+                      Launch Designer <ArrowRight size={14} />
+                    </a>
+                  </div>
+                </div>
               </div>
             )}
           </section>

@@ -1,4 +1,4 @@
-export function getCanvasDimensions(product: any, selectedSpecs: Record<string, string>) {
+export function getCanvasDimensions(product: any, selectedSpecs: Record<string, string>, bleed = 0.25, dpi = 300) {
   if (!product) return { width: 1050, height: 600 };
 
   let baseWidth = product.widthPx || 1050;
@@ -15,19 +15,25 @@ export function getCanvasDimensions(product: any, selectedSpecs: Record<string, 
       let calculatedH = selectedSpec.vertical;
 
       if (metric === 'in') {
-        calculatedW = selectedSpec.horizontal * 300;
-        calculatedH = selectedSpec.vertical * 300;
+        calculatedW = (selectedSpec.horizontal + bleed) * dpi;
+        calculatedH = (selectedSpec.vertical + bleed) * dpi;
       } else if (metric === 'cm') {
-        calculatedW = selectedSpec.horizontal * 118.11;
-        calculatedH = selectedSpec.vertical * 118.11;
+        const bleedCm = bleed * 2.54;
+        const dpiCm = dpi / 2.54;
+        calculatedW = (selectedSpec.horizontal + bleedCm) * dpiCm;
+        calculatedH = (selectedSpec.vertical + bleedCm) * dpiCm;
       } else if (metric === 'px') {
-        calculatedW = selectedSpec.horizontal;
-        calculatedH = selectedSpec.vertical;
+        calculatedW = selectedSpec.horizontal + (bleed * dpi);
+        calculatedH = selectedSpec.vertical + (bleed * dpi);
       } else {
         // Smart fallback: if values are small, assume inches
-        const scale = selectedSpec.horizontal <= 30 ? 300 : 1;
-        calculatedW = selectedSpec.horizontal * scale;
-        calculatedH = selectedSpec.vertical * scale;
+        if (selectedSpec.horizontal <= 30) {
+          calculatedW = (selectedSpec.horizontal + bleed) * dpi;
+          calculatedH = (selectedSpec.vertical + bleed) * dpi;
+        } else {
+          calculatedW = selectedSpec.horizontal + (bleed * dpi);
+          calculatedH = selectedSpec.vertical + (bleed * dpi);
+        }
       }
 
       baseWidth = Math.round(calculatedW);
