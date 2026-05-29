@@ -192,7 +192,7 @@ export default function HomePage() {
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '32px' }}>
                 {(() => {
                   const filteredProducts = selectedCategorySlug === 'all'
                     ? products

@@ -16,7 +16,7 @@ export default function AdminPage() {
   const [loadingAdmin, setLoadingAdmin] = useState(true);
 
   // Navegación mediante tabs en React
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'create-product' | 'options-attributes' | 'create-option' | 'categories' | 'create-category' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'create-product' | 'options-attributes' | 'create-option' | 'categories' | 'create-category' | 'settings' | 'templates'>('dashboard');
 
   // Firebase Storage Settings State
   const [firebaseApiKey, setFirebaseApiKey] = useState('');
@@ -27,6 +27,44 @@ export default function AdminPage() {
   const [firebaseAppId, setFirebaseAppId] = useState('');
   const [firebaseMeasurementId, setFirebaseMeasurementId] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // Admin Templates State
+  const [adminTemplates, setAdminTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+  const loadAdminTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch('/api/templates');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminTemplates(data);
+      }
+    } catch (err) {
+      console.error('Error loading admin templates:', err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!confirm('Are you sure you want to permanently delete this template?')) return;
+    try {
+      const res = await fetch(`/api/templates?id=${templateId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        alert('Template successfully deleted!');
+        loadAdminTemplates();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete template');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error connecting to backend API');
+    }
+  };
 
   // Datos de Administración
   const [orders, setOrders] = useState<any[]>([]);
@@ -170,6 +208,9 @@ export default function AdminPage() {
 
       // Cargar Configuración de Firebase
       loadSettingsData();
+
+      // Cargar Plantillas de Admin
+      loadAdminTemplates();
     } catch (err) {
       console.error(err);
     } finally {
@@ -838,6 +879,11 @@ export default function AdminPage() {
           <li className={`admin-sidebar-item ${activeTab === 'options-attributes' || activeTab === 'create-option' ? 'active' : ''}`}>
             <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('options-attributes'); }}>
               <Palette size={18} style={{ color: 'var(--accent-primary)' }} /> Options & Attributes
+            </a>
+          </li>
+          <li className={`admin-sidebar-item ${activeTab === 'templates' ? 'active' : ''}`}>
+            <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('templates'); }}>
+              <Palette size={18} style={{ color: 'var(--accent-primary)' }} /> Templates Manager
             </a>
           </li>
 
@@ -2158,6 +2204,68 @@ export default function AdminPage() {
                 </button>
               </div>
             </form>
+          </section>
+        )}
+
+        {/* SECCIÓN TEMPLATES MANAGER */}
+        {activeTab === 'templates' && (
+          <section className="glass-card" style={{ padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+              <div>
+                <h2 style={{ fontSize: '22px', fontFamily: 'var(--font-title)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                  <Palette size={22} style={{ color: 'var(--accent-primary)' }} />
+                  Templates Manager
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>View and delete design templates created by administrators for customized product configurations.</p>
+              </div>
+            </div>
+
+            {loadingTemplates ? (
+              <div style={{ textAlign: 'center', padding: '30px' }}>Loading templates...</div>
+            ) : adminTemplates.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center' }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>No custom templates saved yet. Design templates inside the Canvas Editor and click "Save as Admin Template" to see them here.</p>
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Template Name</th>
+                      <th>Product Base</th>
+                      <th>Created At</th>
+                      <th>Preview</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminTemplates.map((template) => (
+                      <tr key={template.id}>
+                        <td style={{ fontWeight: 'bold' }}>{template.name}</td>
+                        <td>{template.product?.name || 'Unknown Product'} <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>({template.product?.slug})</span></td>
+                        <td>{new Date(template.createdAt).toLocaleDateString()}</td>
+                        <td>
+                          {template.previewUrl ? (
+                            <img src={template.previewUrl} alt={template.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No Preview</span>
+                          )}
+                        </td>
+                        <td>
+                          <button 
+                            className="btn btn-secondary btn-sm" 
+                            style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', padding: '6px 12px', cursor: 'pointer' }} 
+                            onClick={() => handleDeleteTemplate(template.id)}
+                          >
+                            <Trash2 size={12} style={{ marginRight: '4px', display: 'inline' }} /> Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         )}
 

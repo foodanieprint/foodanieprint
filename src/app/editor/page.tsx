@@ -8,7 +8,7 @@ import {
   Save, ShoppingCart, Plus, Minus, ArrowLeft,
   ChevronRight, Award, HelpCircle, ChevronDown,
   Sliders, Upload, Palette, Grid, Columns, Search, Maximize2,
-  Settings, Eye, EyeOff, Edit3
+  Settings, Eye, EyeOff, Edit3, Shield
 } from 'lucide-react';
 import { getCanvasDimensions } from '@/lib/canvasUtils';
 
@@ -92,6 +92,48 @@ function EditorContent() {
   const dragStart = useRef({ x: 0, y: 0 });
   const elementStart = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
+  // Admin and Dynamic Templates States
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Load templates list for product
+  const loadTemplates = async (productId: string) => {
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch(`/api/templates?productId=${productId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTemplates(data);
+      }
+    } catch (err) {
+      console.error('Error loading templates:', err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  // Check user role on mount
+  useEffect(() => {
+    async function checkUser() {
+      try {
+        const res = await fetch('/api/auth');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user.role === 'ADMIN') {
+            setIsAdmin(true);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking auth:', err);
+      }
+    }
+    checkUser();
+  }, []);
+
   // 1. Fetch Product details from API
   useEffect(() => {
     async function loadData() {
@@ -100,6 +142,9 @@ function EditorContent() {
         if (!res.ok) throw new Error('Product not found');
         const prodData = await res.json();
         setProduct(prodData);
+
+        // Load dynamic templates
+        loadTemplates(prodData.id);
         
         // Inicializar especificaciones por defecto o cargadas de la URL
         const initialSpecs: Record<string, string> = {};
@@ -462,6 +507,86 @@ function EditorContent() {
     }
     setCanvasElements(elements);
     saveToHistory(elements);
+  };
+
+  const loadDynamicTemplate = (template: any) => {
+    if (!confirm('Loading this template will replace all active elements on your canvas. Do you want to proceed?')) {
+      return;
+    }
+    try {
+      const parsed = typeof template.canvasData === 'string' 
+        ? JSON.parse(template.canvasData) 
+        : template.canvasData;
+        
+      if (parsed && (parsed.front || parsed.back)) {
+        const front = parsed.front || [];
+        const back = parsed.back || [];
+        setFrontElements(front);
+        setBackElements(back);
+        if (activePage === 'front') {
+          setCanvasElements(front);
+        } else {
+          setCanvasElements(back);
+        }
+        saveToHistory(activePage === 'front' ? front : back);
+      } else if (Array.isArray(parsed)) {
+        setFrontElements(parsed);
+        setCanvasElements(parsed);
+        saveToHistory(parsed);
+      }
+    } catch (e) {
+      console.error('Error loading template elements:', e);
+      alert('Error loading this template data.');
+    }
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!templateName.trim()) {
+      alert('Please enter a template name.');
+      return;
+    }
+    setSavingTemplate(true);
+    try {
+      let finalFront = frontElements;
+      let finalBack = backElements;
+      if (activePage === 'front') {
+        finalFront = canvasElements;
+      } else {
+        finalBack = canvasElements;
+      }
+
+      const canvasBlobData = JSON.stringify({
+        front: finalFront,
+        back: finalBack
+      });
+
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          name: templateName,
+          canvasData: canvasBlobData,
+          previewUrl: '', // Default fallback will be handled by route
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save template');
+      }
+
+      alert('Template saved successfully!');
+      setShowSaveTemplateModal(false);
+      setTemplateName('');
+      // Reload templates list
+      loadTemplates(product.id);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error saving template.');
+    } finally {
+      setSavingTemplate(false);
+    }
   };
 
   // 6. Edición rápida del Toolbar
@@ -1416,19 +1541,73 @@ function EditorContent() {
                   <Columns size={18} style={{ color: '#0284c7' }} />
                   Templates
                 </h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>Load a pre-defined starter template. This will replace the active elements currently on your canvas.</p>
                 
-                <div className="templates-grid" style={{ marginTop: '8px' }}>
-                  <div className="template-card" onClick={() => loadSidebarTemplate('corporate')}>
+                {isAdmin && (
+                  <div style={{ padding: '12px', border: '1px solid #bae6fd', borderRadius: '8px', background: '#f0f9ff', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      <Shield size={14} /> Admin Controls
+                    </h4>
+                    <p style={{ fontSize: '11px', color: '#0e7490', margin: 0 }}>Save your current canvas layout as an admin template for this product base.</p>
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ background: '#0284c7', color: 'white', border: 'none', padding: '8px 12px', fontSize: '12px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', fontWeight: 'bold', cursor: 'pointer' }}
+                      onClick={() => {
+                        setTemplateName(canvasName);
+                        setShowSaveTemplateModal(true);
+                      }}
+                    >
+                      <Save size={14} /> Save Current as Template
+                    </button>
+                  </div>
+                )}
+
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4', margin: 0 }}>Load a template to replace active elements on your canvas.</p>
+                
+                {/* Dynamic DB-backed templates */}
+                {templates.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <h4 style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', margin: '8px 0 0 0', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
+                      Custom Templates
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                      {templates.map((tpl) => (
+                        <div 
+                          key={tpl.id} 
+                          className="template-card" 
+                          onClick={() => loadDynamicTemplate(tpl)}
+                          style={{ cursor: 'pointer', border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden', transition: 'all 0.15s ease' }}
+                        >
+                          <div style={{ height: '60px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            {tpl.previewUrl ? (
+                              <img src={tpl.previewUrl} alt={tpl.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ fontSize: '20px', color: 'var(--text-muted)' }}><Columns size={20} /></div>
+                            )}
+                          </div>
+                          <div style={{ padding: '6px 8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={tpl.name}>
+                            {tpl.name}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <h4 style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', margin: '8px 0 0 0', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
+                  Starter Templates
+                </h4>
+                <div className="templates-grid" style={{ marginTop: '0', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                  <div className="template-card" onClick={() => loadSidebarTemplate('corporate')} style={{ cursor: 'pointer' }}>
                     <div style={{ height: '60px', background: 'linear-gradient(135deg, #002447 0%, #003666 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'white', fontWeight: 'bold' }}>Corporate</div>
                     <div style={{ padding: '8px', fontSize: '11px', textAlign: 'center' }}>Global Tech</div>
                   </div>
-                  <div className="template-card" onClick={() => loadSidebarTemplate('creative')}>
+                  <div className="template-card" onClick={() => loadSidebarTemplate('creative')} style={{ cursor: 'pointer' }}>
                     <div style={{ height: '60px', background: 'linear-gradient(135deg, #ff6600 0%, #ff8833 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'white', fontWeight: 'bold' }}>Creative</div>
                     <div style={{ padding: '8px', fontSize: '11px', textAlign: 'center' }}>Hologram</div>
                   </div>
                 </div>
-                <div className="template-card" style={{ width: '100%' }} onClick={() => loadSidebarTemplate('minimalist')}>
+                <div className="template-card" style={{ width: '100%', cursor: 'pointer' }} onClick={() => loadSidebarTemplate('minimalist')}>
                   <div style={{ height: '60px', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'var(--text-primary)', fontWeight: 'bold' }}>Minimalist</div>
                   <div style={{ padding: '8px', fontSize: '11px', textAlign: 'center' }}>Essential</div>
                 </div>
@@ -2455,6 +2634,42 @@ function EditorContent() {
           </button>
         </div>
       </aside>
+
+      {showSaveTemplateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '400px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 12px 0', color: 'var(--text-primary)' }}>Save Admin Template</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 16px 0' }}>Enter a reference name for this template. It will be available for all customers configuring this product.</p>
+            <input 
+              type="text" 
+              className="input-field" 
+              value={templateName} 
+              onChange={(e) => setTemplateName(e.target.value)} 
+              placeholder="e.g. Elegant Gold Minimalist"
+              style={{ width: '100%', marginBottom: '20px', padding: '10px' }}
+            />
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setShowSaveTemplateModal(false)}
+                disabled={savingTemplate}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={handleSaveAsTemplate}
+                disabled={savingTemplate}
+                style={{ background: '#0284c7', borderColor: '#0284c7' }}
+              >
+                {savingTemplate ? 'Saving...' : 'Save Template'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
