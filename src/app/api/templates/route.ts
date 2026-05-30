@@ -45,16 +45,18 @@ export async function GET(req: Request) {
     if (specsStr) {
       try {
         const querySpecs = JSON.parse(specsStr);
-        templates = (templates as any[]).filter(tpl => {
-          if (!tpl.targetSpecs) return true; // Si la plantilla no tiene specs objetivo, es compatible con todo
-          const target = typeof tpl.targetSpecs === 'string' ? JSON.parse(tpl.targetSpecs) : tpl.targetSpecs;
-          if (!target) return true;
-          // Verificar si todas las especificaciones de target coinciden con querySpecs
-          return Object.entries(target).every(([key, val]) => {
-            if (querySpecs[key] === undefined) return true;
-            return String(querySpecs[key]).toLowerCase() === String(val).toLowerCase();
+        if (querySpecs && typeof querySpecs === 'object') {
+          templates = (templates as any[]).filter(tpl => {
+            if (!tpl.targetSpecs) return true; // Si la plantilla no tiene specs objetivo, es compatible con todo
+            const target = typeof tpl.targetSpecs === 'string' ? JSON.parse(tpl.targetSpecs) : tpl.targetSpecs;
+            if (!target) return true;
+            // Verificar si todas las especificaciones de target coinciden con querySpecs
+            return Object.entries(target).every(([key, val]) => {
+              if (querySpecs[key] === undefined) return true;
+              return String(querySpecs[key]).toLowerCase() === String(val).toLowerCase();
+            });
           });
-        });
+        }
       } catch (e) {
         console.error('Error parsing specs query param:', e);
       }
