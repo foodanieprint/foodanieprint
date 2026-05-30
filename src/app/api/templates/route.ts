@@ -48,6 +48,7 @@ export async function GET(req: Request) {
         templates = (templates as any[]).filter(tpl => {
           if (!tpl.targetSpecs) return true; // Si la plantilla no tiene specs objetivo, es compatible con todo
           const target = typeof tpl.targetSpecs === 'string' ? JSON.parse(tpl.targetSpecs) : tpl.targetSpecs;
+          if (!target) return true;
           // Verificar si todas las especificaciones de target coinciden con querySpecs
           return Object.entries(target).every(([key, val]) => {
             if (querySpecs[key] === undefined) return true;
