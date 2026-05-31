@@ -96,6 +96,7 @@ export async function GET(
                 value: attr.value,
                 priceMarkup: attr.priceMarkup,
                 markupType: attr.markupType || 'FLAT',
+                isBasePrice: attr.isBasePrice ?? false,
                 horizontal: attr.horizontal || 0,
                 vertical: attr.vertical || 0,
               });

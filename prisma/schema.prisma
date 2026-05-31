@@ -65,6 +65,7 @@ model ProductSpec {
   value       String   // Ej: "Papel Mate Premium", "Brillo UV", "100 unidades"
   priceMarkup Float    // Incremento de precio por seleccionar esta opción
   markupType  String   @default("FLAT") // "FLAT" o "PERCENTAGE"
+  isBasePrice Boolean  @default(false) // Si es true, el valor reemplaza el precio base del producto
   position    Int      @default(0)
   horizontal  Float    @default(0)
   vertical    Float    @default(0)
@@ -138,6 +139,7 @@ model GlobalAttribute {
   metric      String       
   priceMarkup Float        
   markupType  String       @default("FLAT") // "FLAT" o "PERCENTAGE"
+  isBasePrice Boolean      @default(false) // Si es true, el valor reemplaza el precio base del producto
   horizontal  Float        @default(0)
   vertical    Float        @default(0)
 

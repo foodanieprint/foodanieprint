@@ -60,12 +60,25 @@ function ProductDetailContent() {
   // Recalcular precio unitario al cambiar especificaciones
   useEffect(() => {
     if (!product) return;
-    let price = product.basePrice;
+    
+    // Determinar primero si hay alguna especificación que reemplaza el precio base
+    let basePrice = product.basePrice;
+    Object.entries(selectedSpecs).forEach(([group, value]) => {
+      const match = product.specs.find((s: any) => s.group === group && s.value === value);
+      if (match && match.isBasePrice) {
+        basePrice = match.priceMarkup;
+      }
+    });
+
+    let price = basePrice;
     Object.entries(selectedSpecs).forEach(([group, value]) => {
       const match = product.specs.find((s: any) => s.group === group && s.value === value);
       if (match) {
+        // Si esta especificación es la que define el precio base, no la sumamos otra vez
+        if (match.isBasePrice) return;
+
         const actualMarkup = match.markupType === 'PERCENTAGE'
-          ? (product.basePrice * match.priceMarkup) / 100
+          ? (basePrice * match.priceMarkup) / 100
           : match.priceMarkup;
         price += actualMarkup;
       }

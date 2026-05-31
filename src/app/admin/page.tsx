@@ -129,9 +129,9 @@ export default function AdminPage() {
   const [selectedGlobalOptionIds, setSelectedGlobalOptionIds] = useState<string[]>([]);
   
   // Especificaciones dinámicas en creación de productos
-  const [newProdSpecs, setNewProdSpecs] = useState<Array<{ id?: string; group: string; value: string; horizontal?: string; vertical?: string; priceMarkup: string; markupType: string }>>([
-    { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' },
-    { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT' }
+  const [newProdSpecs, setNewProdSpecs] = useState<Array<{ id?: string; group: string; value: string; horizontal?: string; vertical?: string; priceMarkup: string; markupType: string; isBasePrice: boolean }>>([
+    { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
+    { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
   ]);
 
   // Estado del creador de Global Options & Attributes
@@ -140,9 +140,9 @@ export default function AdminPage() {
   const [newOptionDesc, setNewOptionDesc] = useState('');
   const [newOptionCategoryId, setNewOptionCategoryId] = useState('');
   const [selectedOptionCategoryIds, setSelectedOptionCategoryIds] = useState<string[]>([]);
-  const [newOptionAttributes, setNewOptionAttributes] = useState<Array<{ id?: string; value: string; metric: string; horizontal: string; vertical: string; priceMarkup: string; markupType: string }>>([
-    { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT' },
-    { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT' }
+  const [newOptionAttributes, setNewOptionAttributes] = useState<Array<{ id?: string; value: string; metric: string; horizontal: string; vertical: string; priceMarkup: string; markupType: string; isBasePrice: boolean }>>([
+    { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
+    { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
   ]);
 
   // Estado del creador de Categorías
@@ -389,12 +389,14 @@ export default function AdminPage() {
     let defaultValue = '';
     let defaultMarkup = '0';
     let defaultMarkupType = 'FLAT';
+    let defaultIsBasePrice = false;
     let defaultHoriz = '0';
     let defaultVert = '0';
     if (selectedOpt && selectedOpt.attributes && selectedOpt.attributes.length > 0) {
       defaultValue = selectedOpt.attributes[0].value;
       defaultMarkup = String(selectedOpt.attributes[0].priceMarkup);
       defaultMarkupType = selectedOpt.attributes[0].markupType || 'FLAT';
+      defaultIsBasePrice = selectedOpt.attributes[0].isBasePrice || false;
       defaultHoriz = String(selectedOpt.attributes[0].horizontal || '0');
       defaultVert = String(selectedOpt.attributes[0].vertical || '0');
     }
@@ -403,6 +405,7 @@ export default function AdminPage() {
       value: defaultValue, 
       priceMarkup: defaultMarkup,
       markupType: defaultMarkupType,
+      isBasePrice: defaultIsBasePrice,
       horizontal: defaultHoriz,
       vertical: defaultVert 
     }]);
@@ -412,7 +415,7 @@ export default function AdminPage() {
     setNewProdSpecs(newProdSpecs.filter((_, i) => i !== idx));
   };
 
-  const handleSpecRowChange = (idx: number, field: string, val: string) => {
+  const handleSpecRowChange = (idx: number, field: string, val: any) => {
     const updated = newProdSpecs.map((row, i) => {
       if (i === idx) {
         let newRow = { ...row, [field]: val };
@@ -424,12 +427,14 @@ export default function AdminPage() {
             newRow.value = selectedOpt.attributes[0].value;
             newRow.priceMarkup = String(selectedOpt.attributes[0].priceMarkup);
             newRow.markupType = selectedOpt.attributes[0].markupType || 'FLAT';
+            newRow.isBasePrice = selectedOpt.attributes[0].isBasePrice || false;
             newRow.horizontal = String(selectedOpt.attributes[0].horizontal || '0');
             newRow.vertical = String(selectedOpt.attributes[0].vertical || '0');
           } else {
             newRow.value = '';
             newRow.priceMarkup = '0';
             newRow.markupType = 'FLAT';
+            newRow.isBasePrice = false;
             newRow.horizontal = '0';
             newRow.vertical = '0';
           }
@@ -520,8 +525,8 @@ export default function AdminPage() {
         setNewProdCategoryId('');
         setSelectedGlobalOptionIds([]);
         setNewProdSpecs([
-          { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' },
-          { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT' }
+          { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
+          { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
         ]);
         setNewProdDpi('');
         setEditingProductId(null);
@@ -565,7 +570,8 @@ export default function AdminPage() {
       horizontal: (spec.horizontal || 0).toString(),
       vertical: (spec.vertical || 0).toString(),
       priceMarkup: spec.priceMarkup.toString(),
-      markupType: spec.markupType || 'FLAT'
+      markupType: spec.markupType || 'FLAT',
+      isBasePrice: spec.isBasePrice || false
     }));
     setNewProdSpecs(mappedSpecs);
     
@@ -587,8 +593,8 @@ export default function AdminPage() {
     setNewProdCategoryId('');
     setSelectedGlobalOptionIds([]);
     setNewProdSpecs([
-      { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' },
-      { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT' }
+      { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
+      { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
     ]);
     setEditingProductId(null);
     setActiveTab('create-product');
@@ -616,14 +622,14 @@ export default function AdminPage() {
 
   // 9. Configurar Attributes en fila (Global Options)
   const handleAddAttributeRow = () => {
-    setNewOptionAttributes([...newOptionAttributes, { value: '', metric: 'none', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' }]);
+    setNewOptionAttributes([...newOptionAttributes, { value: '', metric: 'none', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false }]);
   };
 
   const handleRemoveAttributeRow = (idx: number) => {
     setNewOptionAttributes(newOptionAttributes.filter((_, i) => i !== idx));
   };
 
-  const handleAttributeRowChange = (idx: number, field: string, val: string) => {
+  const handleAttributeRowChange = (idx: number, field: string, val: any) => {
     const updated = newOptionAttributes.map((row, i) => {
       if (i === idx) return { ...row, [field]: val };
       return row;
@@ -670,8 +676,8 @@ export default function AdminPage() {
         setNewOptionCategoryId('');
         setSelectedOptionCategoryIds([]);
         setNewOptionAttributes([
-          { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT' },
-          { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT' }
+          { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
+          { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
         ]);
         setEditingOptionId(null);
         setActiveTab('options-attributes');
@@ -711,7 +717,8 @@ export default function AdminPage() {
       horizontal: (attr.horizontal || 0).toString(),
       vertical: (attr.vertical || 0).toString(),
       priceMarkup: attr.priceMarkup.toString(),
-      markupType: attr.markupType || 'FLAT'
+      markupType: attr.markupType || 'FLAT',
+      isBasePrice: attr.isBasePrice || false
     }));
     setNewOptionAttributes(mappedAttrs);
     
@@ -726,9 +733,9 @@ export default function AdminPage() {
     setNewOptionCategoryId('');
     setSelectedOptionCategoryIds([]);
     setNewOptionAttributes([
-      { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT' },
-      { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT' },
-      { value: '5x7', metric: 'in', horizontal: '5', vertical: '7', priceMarkup: '5.00', markupType: 'FLAT' }
+      { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
+      { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false },
+      { value: '5x7', metric: 'in', horizontal: '5', vertical: '7', priceMarkup: '5.00', markupType: 'FLAT', isBasePrice: false }
     ]);
     setEditingOptionId(null);
     setActiveTab('create-option');
@@ -1776,6 +1783,16 @@ export default function AdminPage() {
                         <option value="PERCENTAGE">Percent (%)</option>
                       </select>
 
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={row.isBasePrice || false}
+                          onChange={(e) => handleSpecRowChange(idx, 'isBasePrice', e.target.checked)}
+                          style={{ accentColor: 'var(--accent-primary)' }}
+                        />
+                        <span>Is Base Price</span>
+                      </label>
+
                       <button 
                         type="button" 
                         onClick={() => handleRemoveSpecRow(idx)}
@@ -1920,12 +1937,14 @@ export default function AdminPage() {
                             )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11px' }}>
                               <span style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', textTransform: 'lowercase' }}>{attr.metric || 'unit'}</span>
-                              <span style={{ fontWeight: 'bold', color: attr.priceMarkup > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
-                                {attr.priceMarkup > 0 
-                                  ? (attr.markupType === 'PERCENTAGE' 
-                                      ? `+${attr.priceMarkup}%` 
-                                      : `+$${attr.priceMarkup.toFixed(2)}`) 
-                                  : 'Base Price'}
+                              <span style={{ fontWeight: 'bold', color: attr.isBasePrice ? 'var(--accent-primary)' : (attr.priceMarkup > 0 ? 'var(--success)' : 'var(--text-muted)') }}>
+                                {attr.isBasePrice
+                                  ? `Base Override: $${Number(attr.priceMarkup).toFixed(2)}`
+                                  : (attr.priceMarkup > 0 
+                                      ? (attr.markupType === 'PERCENTAGE' 
+                                          ? `+${attr.priceMarkup}%` 
+                                          : `+$${Number(attr.priceMarkup).toFixed(2)}`) 
+                                      : 'Base Price')}
                               </span>
                             </div>
                           </div>
@@ -2109,6 +2128,16 @@ export default function AdminPage() {
                           <option value="PERCENTAGE">Percent (%)</option>
                         </select>
                       </div>
+
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                        <input
+                          type="checkbox"
+                          checked={row.isBasePrice || false}
+                          onChange={(e) => handleAttributeRowChange(idx, 'isBasePrice', e.target.checked)}
+                          style={{ accentColor: 'var(--accent-primary)' }}
+                        />
+                        <span>Is Base Price</span>
+                      </label>
 
                       <button 
                         type="button" 

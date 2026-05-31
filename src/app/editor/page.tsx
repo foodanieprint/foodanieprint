@@ -278,14 +278,26 @@ function EditorContent() {
   useEffect(() => {
     if (!product) return;
     
-    let currentPrice = product.basePrice;
+    // Determinar primero si hay alguna especificación que reemplaza el precio base
+    let basePrice = product.basePrice;
+    Object.entries(selectedSpecs).forEach(([group, value]) => {
+      const match = product.specs.find((s: any) => s.group === group && s.value === value);
+      if (match && match.isBasePrice) {
+        basePrice = match.priceMarkup;
+      }
+    });
+
+    let currentPrice = basePrice;
     
     // Sumar recargo de especificaciones
     Object.entries(selectedSpecs).forEach(([group, value]) => {
       const match = product.specs.find((s: any) => s.group === group && s.value === value);
       if (match) {
+        // Si esta especificación es la que define el precio base, no la sumamos otra vez
+        if (match.isBasePrice) return;
+
         const actualMarkup = match.markupType === 'PERCENTAGE'
-          ? (product.basePrice * match.priceMarkup) / 100
+          ? (basePrice * match.priceMarkup) / 100
           : match.priceMarkup;
         currentPrice += actualMarkup;
       }
