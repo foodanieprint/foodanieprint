@@ -592,9 +592,7 @@ function ProductDetailContent() {
                                 ? (product.basePrice * spec.priceMarkup) / 100
                                 : spec.priceMarkup;
                               const markupText = spec.priceMarkup > 0 
-                                ? (spec.markupType === 'PERCENTAGE' 
-                                    ? `(+${spec.priceMarkup}% / +$${actualMarkup.toFixed(2)})` 
-                                    : `(+$${spec.priceMarkup.toFixed(2)})`) 
+                                ? `(+$${actualMarkup.toFixed(2)})` 
                                 : '';
                               return (
                                 <div
