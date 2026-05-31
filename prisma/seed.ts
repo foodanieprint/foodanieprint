@@ -6,6 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seeding...');
 
+  // Check if we already have data in the database to prevent accidental data loss on redeployment
+  const userCount = await prisma.user.count();
+  const productCount = await prisma.product.count();
+  if (userCount > 0 || productCount > 0) {
+    console.log('⚠️ Database already contains user or product data. Skipping seeding to protect existing settings and catalog items.');
+    return;
+  }
+
   // 1. Clear existing database tables
   await prisma.orderItem.deleteMany({});
   await prisma.order.deleteMany({});
