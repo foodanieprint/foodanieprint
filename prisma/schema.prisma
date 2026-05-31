@@ -63,6 +63,7 @@ model ProductSpec {
   group       String   // Ej: "Material", "Acabado", "Cantidad"
   value       String   // Ej: "Papel Mate Premium", "Brillo UV", "100 unidades"
   priceMarkup Float    // Incremento de precio por seleccionar esta opción
+  markupType  String   @default("FLAT") // "FLAT" o "PERCENTAGE"
   position    Int      @default(0)
   horizontal  Float    @default(0)
   vertical    Float    @default(0)
@@ -135,6 +136,7 @@ model GlobalAttribute {
   value       String       
   metric      String       
   priceMarkup Float        
+  markupType  String       @default("FLAT") // "FLAT" o "PERCENTAGE"
   horizontal  Float        @default(0)
   vertical    Float        @default(0)
 

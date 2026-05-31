@@ -128,9 +128,9 @@ export default function AdminPage() {
   const [selectedGlobalOptionIds, setSelectedGlobalOptionIds] = useState<string[]>([]);
   
   // Especificaciones dinámicas en creación de productos
-  const [newProdSpecs, setNewProdSpecs] = useState<Array<{ id?: string; group: string; value: string; horizontal?: string; vertical?: string; priceMarkup: string }>>([
-    { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0' },
-    { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50' }
+  const [newProdSpecs, setNewProdSpecs] = useState<Array<{ id?: string; group: string; value: string; horizontal?: string; vertical?: string; priceMarkup: string; markupType: string }>>([
+    { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' },
+    { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT' }
   ]);
 
   // Estado del creador de Global Options & Attributes
@@ -139,9 +139,9 @@ export default function AdminPage() {
   const [newOptionDesc, setNewOptionDesc] = useState('');
   const [newOptionCategoryId, setNewOptionCategoryId] = useState('');
   const [selectedOptionCategoryIds, setSelectedOptionCategoryIds] = useState<string[]>([]);
-  const [newOptionAttributes, setNewOptionAttributes] = useState<Array<{ id?: string; value: string; metric: string; horizontal: string; vertical: string; priceMarkup: string }>>([
-    { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0' },
-    { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50' }
+  const [newOptionAttributes, setNewOptionAttributes] = useState<Array<{ id?: string; value: string; metric: string; horizontal: string; vertical: string; priceMarkup: string; markupType: string }>>([
+    { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT' },
+    { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT' }
   ]);
 
   // Estado del creador de Categorías
@@ -376,11 +376,13 @@ export default function AdminPage() {
     const selectedOpt = filteredOptions.find((o: any) => o.name === defaultGroup);
     let defaultValue = '';
     let defaultMarkup = '0';
+    let defaultMarkupType = 'FLAT';
     let defaultHoriz = '0';
     let defaultVert = '0';
     if (selectedOpt && selectedOpt.attributes && selectedOpt.attributes.length > 0) {
       defaultValue = selectedOpt.attributes[0].value;
       defaultMarkup = String(selectedOpt.attributes[0].priceMarkup);
+      defaultMarkupType = selectedOpt.attributes[0].markupType || 'FLAT';
       defaultHoriz = String(selectedOpt.attributes[0].horizontal || '0');
       defaultVert = String(selectedOpt.attributes[0].vertical || '0');
     }
@@ -388,6 +390,7 @@ export default function AdminPage() {
       group: defaultGroup, 
       value: defaultValue, 
       priceMarkup: defaultMarkup,
+      markupType: defaultMarkupType,
       horizontal: defaultHoriz,
       vertical: defaultVert 
     }]);
@@ -408,11 +411,13 @@ export default function AdminPage() {
           if (selectedOpt && selectedOpt.attributes && selectedOpt.attributes.length > 0) {
             newRow.value = selectedOpt.attributes[0].value;
             newRow.priceMarkup = String(selectedOpt.attributes[0].priceMarkup);
+            newRow.markupType = selectedOpt.attributes[0].markupType || 'FLAT';
             newRow.horizontal = String(selectedOpt.attributes[0].horizontal || '0');
             newRow.vertical = String(selectedOpt.attributes[0].vertical || '0');
           } else {
             newRow.value = '';
             newRow.priceMarkup = '0';
+            newRow.markupType = 'FLAT';
             newRow.horizontal = '0';
             newRow.vertical = '0';
           }
@@ -502,8 +507,8 @@ export default function AdminPage() {
         setNewProdCategoryId('');
         setSelectedGlobalOptionIds([]);
         setNewProdSpecs([
-          { group: 'Material', value: 'Premium Matte Paper', priceMarkup: '0' },
-          { group: 'Finish', value: 'Satin Glossy', priceMarkup: '3.50' }
+          { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' },
+          { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT' }
         ]);
         setEditingProductId(null);
         setActiveTab('products'); // Volver a listado
@@ -544,7 +549,8 @@ export default function AdminPage() {
       value: spec.value,
       horizontal: (spec.horizontal || 0).toString(),
       vertical: (spec.vertical || 0).toString(),
-      priceMarkup: spec.priceMarkup.toString()
+      priceMarkup: spec.priceMarkup.toString(),
+      markupType: spec.markupType || 'FLAT'
     }));
     setNewProdSpecs(mappedSpecs);
     
@@ -565,8 +571,8 @@ export default function AdminPage() {
     setNewProdCategoryId('');
     setSelectedGlobalOptionIds([]);
     setNewProdSpecs([
-      { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0' },
-      { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50' }
+      { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' },
+      { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT' }
     ]);
     setEditingProductId(null);
     setActiveTab('create-product');
@@ -594,7 +600,7 @@ export default function AdminPage() {
 
   // 9. Configurar Attributes en fila (Global Options)
   const handleAddAttributeRow = () => {
-    setNewOptionAttributes([...newOptionAttributes, { value: '', metric: 'in', horizontal: '0', vertical: '0', priceMarkup: '0' }]);
+    setNewOptionAttributes([...newOptionAttributes, { value: '', metric: 'in', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' }]);
   };
 
   const handleRemoveAttributeRow = (idx: number) => {
@@ -648,8 +654,8 @@ export default function AdminPage() {
         setNewOptionCategoryId('');
         setSelectedOptionCategoryIds([]);
         setNewOptionAttributes([
-          { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0' },
-          { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50' }
+          { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT' },
+          { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT' }
         ]);
         setEditingOptionId(null);
         setActiveTab('options-attributes');
@@ -688,7 +694,8 @@ export default function AdminPage() {
       metric: attr.metric,
       horizontal: (attr.horizontal || 0).toString(),
       vertical: (attr.vertical || 0).toString(),
-      priceMarkup: attr.priceMarkup.toString()
+      priceMarkup: attr.priceMarkup.toString(),
+      markupType: attr.markupType || 'FLAT'
     }));
     setNewOptionAttributes(mappedAttrs);
     
@@ -703,9 +710,9 @@ export default function AdminPage() {
     setNewOptionCategoryId('');
     setSelectedOptionCategoryIds([]);
     setNewOptionAttributes([
-      { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0' },
-      { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50' },
-      { value: '5x7', metric: 'in', horizontal: '5', vertical: '7', priceMarkup: '5.00' }
+      { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT' },
+      { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT' },
+      { value: '5x7', metric: 'in', horizontal: '5', vertical: '7', priceMarkup: '5.00', markupType: 'FLAT' }
     ]);
     setEditingOptionId(null);
     setActiveTab('create-option');
@@ -1678,8 +1685,18 @@ export default function AdminPage() {
                         style={{ flex: 0.8, padding: '8px' }} 
                         value={row.priceMarkup} 
                         onChange={(e) => handleSpecRowChange(idx, 'priceMarkup', e.target.value)} 
-                        placeholder="Markup $"
+                        placeholder="Markup"
                       />
+
+                      <select
+                        className="input-field"
+                        style={{ flex: 0.8, padding: '8px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}
+                        value={row.markupType || 'FLAT'}
+                        onChange={(e) => handleSpecRowChange(idx, 'markupType', e.target.value)}
+                      >
+                        <option value="FLAT">Flat ($)</option>
+                        <option value="PERCENTAGE">Percent (%)</option>
+                      </select>
 
                       <button 
                         type="button" 
@@ -1826,7 +1843,11 @@ export default function AdminPage() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11px' }}>
                               <span style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', textTransform: 'lowercase' }}>{attr.metric || 'unit'}</span>
                               <span style={{ fontWeight: 'bold', color: attr.priceMarkup > 0 ? 'var(--success)' : 'var(--text-muted)' }}>
-                                {attr.priceMarkup > 0 ? `+$${attr.priceMarkup.toFixed(2)}` : 'Base Price'}
+                                {attr.priceMarkup > 0 
+                                  ? (attr.markupType === 'PERCENTAGE' 
+                                      ? `+${attr.priceMarkup}%` 
+                                      : `+$${attr.priceMarkup.toFixed(2)}`) 
+                                  : 'Base Price'}
                               </span>
                             </div>
                           </div>
@@ -1995,8 +2016,20 @@ export default function AdminPage() {
                           style={{ padding: '8px' }} 
                           value={row.priceMarkup} 
                           onChange={(e) => handleAttributeRowChange(idx, 'priceMarkup', e.target.value)} 
-                          placeholder="Markup $"
+                          placeholder="Markup"
                         />
+                      </div>
+
+                      <div style={{ flex: 0.8 }}>
+                        <select
+                          className="input-field"
+                          style={{ padding: '8px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}
+                          value={row.markupType || 'FLAT'}
+                          onChange={(e) => handleAttributeRowChange(idx, 'markupType', e.target.value)}
+                        >
+                          <option value="FLAT">Flat ($)</option>
+                          <option value="PERCENTAGE">Percent (%)</option>
+                        </select>
                       </div>
 
                       <button 

@@ -95,6 +95,7 @@ export async function GET(
                 group: globalOpt.name,
                 value: attr.value,
                 priceMarkup: attr.priceMarkup,
+                markupType: attr.markupType || 'FLAT',
                 horizontal: attr.horizontal || 0,
                 vertical: attr.vertical || 0,
               });

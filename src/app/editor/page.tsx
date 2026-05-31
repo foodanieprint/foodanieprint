@@ -271,7 +271,10 @@ function EditorContent() {
     Object.entries(selectedSpecs).forEach(([group, value]) => {
       const match = product.specs.find((s: any) => s.group === group && s.value === value);
       if (match) {
-        currentPrice += match.priceMarkup;
+        const actualMarkup = match.markupType === 'PERCENTAGE'
+          ? (product.basePrice * match.priceMarkup) / 100
+          : match.priceMarkup;
+        currentPrice += actualMarkup;
       }
     });
 
@@ -1200,11 +1203,21 @@ function EditorContent() {
                           value={selectedSpecs[group] || ''}
                           onChange={(e) => setSelectedSpecs(prev => ({ ...prev, [group]: e.target.value }))}
                         >
-                          {specsList.map((spec: any) => (
-                            <option key={spec.id} value={spec.value}>
-                              {spec.value} {spec.priceMarkup > 0 ? `(+$${spec.priceMarkup.toFixed(2)})` : ''}
-                            </option>
-                          ))}
+                          {specsList.map((spec: any) => {
+                            const actualMarkup = spec.markupType === 'PERCENTAGE'
+                              ? (product.basePrice * spec.priceMarkup) / 100
+                              : spec.priceMarkup;
+                            const textMarkup = spec.priceMarkup > 0
+                              ? (spec.markupType === 'PERCENTAGE'
+                                  ? `(+${spec.priceMarkup}% / +$${actualMarkup.toFixed(2)})`
+                                  : `(+$${spec.priceMarkup.toFixed(2)})`)
+                              : '';
+                            return (
+                              <option key={spec.id} value={spec.value}>
+                                {spec.value} {textMarkup}
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                     ))}
@@ -2576,8 +2589,13 @@ function EditorContent() {
                       >
                         {specsList.map((spec: any) => {
                           const isSelected = selectedValue === spec.value;
+                          const actualMarkup = spec.markupType === 'PERCENTAGE'
+                            ? (product.basePrice * spec.priceMarkup) / 100
+                            : spec.priceMarkup;
                           const markupText = spec.priceMarkup > 0 
-                            ? `(+$${spec.priceMarkup.toFixed(2)})` 
+                            ? (spec.markupType === 'PERCENTAGE' 
+                                ? `(+${spec.priceMarkup}% / +$${actualMarkup.toFixed(2)})` 
+                                : `(+$${spec.priceMarkup.toFixed(2)})`) 
                             : '';
                           return (
                             <div

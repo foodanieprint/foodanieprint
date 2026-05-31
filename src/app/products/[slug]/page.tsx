@@ -64,7 +64,10 @@ function ProductDetailContent() {
     Object.entries(selectedSpecs).forEach(([group, value]) => {
       const match = product.specs.find((s: any) => s.group === group && s.value === value);
       if (match) {
-        price += match.priceMarkup;
+        const actualMarkup = match.markupType === 'PERCENTAGE'
+          ? (product.basePrice * match.priceMarkup) / 100
+          : match.priceMarkup;
+        price += actualMarkup;
       }
     });
     setUnitPrice(price);
@@ -585,8 +588,13 @@ function ProductDetailContent() {
                           >
                             {specsList.map((spec: any) => {
                               const isSelected = selectedValue === spec.value;
+                              const actualMarkup = spec.markupType === 'PERCENTAGE'
+                                ? (product.basePrice * spec.priceMarkup) / 100
+                                : spec.priceMarkup;
                               const markupText = spec.priceMarkup > 0 
-                                ? `(+$${spec.priceMarkup.toFixed(2)})` 
+                                ? (spec.markupType === 'PERCENTAGE' 
+                                    ? `(+${spec.priceMarkup}% / +$${actualMarkup.toFixed(2)})` 
+                                    : `(+$${spec.priceMarkup.toFixed(2)})`) 
                                 : '';
                               return (
                                 <div
