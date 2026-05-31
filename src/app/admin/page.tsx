@@ -151,6 +151,7 @@ export default function AdminPage() {
 
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [selectedProductionItem, setSelectedProductionItem] = useState<any>(null); // Ver plano SVG
+  const [dbStatus, setDbStatus] = useState<any>(null);
 
   // 1. Validar si el usuario es Administrador
   const checkAdminAuth = async () => {
@@ -179,6 +180,16 @@ export default function AdminPage() {
   const loadAdminData = async () => {
     setLoadingOrders(true);
     try {
+      // Cargar Estado de Base de Datos
+      try {
+        const resDb = await fetch('/api/db-status');
+        const dbData = await resDb.json();
+        setDbStatus(dbData);
+      } catch (dbErr) {
+        console.error('Error fetching db status:', dbErr);
+        setDbStatus({ status: 'error', error: 'Could not connect to database status API' });
+      }
+
       // Cargar Órdenes
       const resOrders = await fetch('/api/orders');
       if (resOrders.ok) {
@@ -945,6 +956,58 @@ export default function AdminPage() {
             <RefreshCw size={14} /> Sync Database State
           </button>
         </div>
+
+        {dbStatus && dbStatus.status === 'error' && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            padding: '16px 20px',
+            borderRadius: 'var(--radius-sm)',
+            color: '#ef4444',
+            fontSize: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.04)',
+            backdropFilter: 'blur(8px)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
+              <span style={{ fontSize: '18px' }}>⚠️</span>
+              <span>PostgreSQL Connection Offline (Fallback Active)</span>
+            </div>
+            <p style={{ margin: 0, opacity: 0.9 }}>
+              The application could not establish a connection to your PostgreSQL database service. You are currently viewing <strong>local mock fallback data</strong>. Any modifications made here will only exist temporarily in local memory and will be reset upon redeploying.
+            </p>
+            <div style={{ fontSize: '12px', background: 'rgba(0, 0, 0, 0.2)', padding: '10px', borderRadius: 'var(--radius-sm)', fontFamily: 'monospace', wordBreak: 'break-all', marginTop: '4px', color: '#f3f4f6' }}>
+              <strong>Prisma Connection Error:</strong> {dbStatus.error}
+              <br />
+              <strong>Target URL:</strong> {dbStatus.maskedUrl}
+            </div>
+          </div>
+        )}
+
+        {dbStatus && dbStatus.status === 'connected' && (
+          <div style={{
+            background: 'rgba(91, 147, 23, 0.08)',
+            border: '1px solid rgba(91, 147, 23, 0.2)',
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-sm)',
+            color: '#76b81d',
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 4px 12px rgba(91, 147, 23, 0.02)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#76b81d', display: 'inline-block', boxShadow: '0 0 8px #76b81d' }}></span>
+              <span>Connected to Live PostgreSQL Database</span>
+            </div>
+            <div style={{ opacity: 0.8, fontSize: '11px' }}>
+              URL: {dbStatus.maskedUrl} | Products: {dbStatus.counts.products} | Users: {dbStatus.counts.users} | Options: {dbStatus.counts.options}
+            </div>
+          </div>
+        )}
 
         {/* METRICAS DE VENTAS (Solo se ven en Overview) */}
         {activeTab === 'dashboard' && (
