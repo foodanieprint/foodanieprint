@@ -600,7 +600,7 @@ export default function AdminPage() {
 
   // 9. Configurar Attributes en fila (Global Options)
   const handleAddAttributeRow = () => {
-    setNewOptionAttributes([...newOptionAttributes, { value: '', metric: 'in', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' }]);
+    setNewOptionAttributes([...newOptionAttributes, { value: '', metric: 'none', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' }]);
   };
 
   const handleRemoveAttributeRow = (idx: number) => {
@@ -1947,7 +1947,7 @@ export default function AdminPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ display: 'flex', gap: '12px', paddingBottom: '4px', borderBottom: '1px solid var(--border-color)', marginBottom: '4px', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
                     <div style={{ flex: 1.5 }}>Label</div>
-                    <div style={{ flex: 1 }}>Unidad de medida</div>
+                    <div style={{ flex: 1 }}>Unit of Measurement</div>
                     <div style={{ flex: 0.8 }}>Horizontal</div>
                     <div style={{ flex: 0.8 }}>Vertical</div>
                     <div style={{ flex: 0.8 }}>Price Markup</div>
