@@ -124,6 +124,7 @@ export default function AdminPage() {
   const [newProdWidth, setNewProdWidth] = useState('1000');
   const [newProdHeight, setNewProdHeight] = useState('600');
   const [newProdBleed, setNewProdBleed] = useState('2.0');
+  const [newProdDpi, setNewProdDpi] = useState('');
   const [newProdCategoryId, setNewProdCategoryId] = useState('');
   const [selectedGlobalOptionIds, setSelectedGlobalOptionIds] = useState<string[]>([]);
   
@@ -486,6 +487,7 @@ export default function AdminPage() {
         widthPx: newProdWidth,
         heightPx: newProdHeight,
         bleedMm: newProdBleed,
+        dpi: newProdDpi ? parseInt(newProdDpi) : null,
         specs: newProdSpecs.map(spec => ({
           ...spec,
           horizontal: parseFloat(spec.horizontal || '0') || 0,
@@ -521,6 +523,7 @@ export default function AdminPage() {
           { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT' },
           { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT' }
         ]);
+        setNewProdDpi('');
         setEditingProductId(null);
         setActiveTab('products'); // Volver a listado
 
@@ -551,6 +554,7 @@ export default function AdminPage() {
     setNewProdWidth(product.widthPx.toString());
     setNewProdHeight(product.heightPx.toString());
     setNewProdBleed(product.bleedMm.toString());
+    setNewProdDpi(product.dpi ? product.dpi.toString() : '');
     setNewProdCategoryId(product.categoryId || '');
     setSelectedGlobalOptionIds(product.globalOptionIds || []);
     
@@ -579,6 +583,7 @@ export default function AdminPage() {
     setNewProdWidth('1000');
     setNewProdHeight('600');
     setNewProdBleed('2.0');
+    setNewProdDpi('');
     setNewProdCategoryId('');
     setSelectedGlobalOptionIds([]);
     setNewProdSpecs([
@@ -1607,7 +1612,7 @@ export default function AdminPage() {
               </div>
 
               {/* Canvas y Margen */}
-              <div className="form-grid-3" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                 <div className="form-group" style={{ marginBottom: '0' }}>
                   <label className="form-label">Recommended Workspace Width (px)</label>
                   <input type="number" required className="input-field" value={newProdWidth} onChange={(e) => setNewProdWidth(e.target.value)} />
@@ -1619,6 +1624,16 @@ export default function AdminPage() {
                 <div className="form-group" style={{ marginBottom: '0' }}>
                   <label className="form-label">Mechanical Bleed Line Margin (mm)</label>
                   <input type="number" step="0.1" required className="input-field" value={newProdBleed} onChange={(e) => setNewProdBleed(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: '0' }}>
+                  <label className="form-label">Custom Resolution DPI (Optional)</label>
+                  <input 
+                    type="number" 
+                    className="input-field" 
+                    value={newProdDpi} 
+                    onChange={(e) => setNewProdDpi(e.target.value)} 
+                    placeholder="e.g. 150, 300 (Falls back to Default)"
+                  />
                 </div>
               </div>
 

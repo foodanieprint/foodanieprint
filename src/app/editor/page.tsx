@@ -102,6 +102,7 @@ function EditorContent() {
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [bleedValue, setBleedValue] = useState(0.25);
   const [dpiValue, setDpiValue] = useState(300);
+  const [globalDpi, setGlobalDpi] = useState(300);
 
   // Load templates list for product
   const loadTemplates = async (productId: string, currentSpecs?: Record<string, string>) => {
@@ -153,6 +154,7 @@ function EditorContent() {
           if (data.designer) {
             setBleedValue(Number(data.designer.bleed ?? 0.25));
             setDpiValue(Number(data.designer.dpi ?? 300));
+            setGlobalDpi(Number(data.designer.dpi ?? 300));
           }
         }
       } catch (err) {
@@ -252,6 +254,17 @@ function EditorContent() {
     }
     loadData();
   }, [productSlug, designId, templateId]);
+
+  // Overwrite DPI if product specifies a custom one, otherwise fall back to global default
+  useEffect(() => {
+    if (product) {
+      if (product.dpi && Number(product.dpi) > 0) {
+        setDpiValue(Number(product.dpi));
+      } else {
+        setDpiValue(globalDpi);
+      }
+    }
+  }, [product, globalDpi]);
 
   // Dynamic Canvas Dimension Calculation (Size & Orientation binding)
   useEffect(() => {

@@ -44,6 +44,7 @@ model Product {
   widthPx       Int      // Ancho sugerido en el editor
   heightPx      Int      // Alto sugerido en el editor
   bleedMm       Float    // Línea de sangrado en mm para imprenta
+  dpi           Int?     // Opcional: DPI personalizado para este producto (ej: 150, 300)
   globalOptionIds Json?   // Reusable global options associated with this product (e.g. ["opt-size"])
   images        Json?    // Gallery image URLs list
   categoryId    String?

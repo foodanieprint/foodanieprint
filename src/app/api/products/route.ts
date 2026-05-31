@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized. Admin permissions required.' }, { status: 403 });
     }
 
-    const { name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, specs, globalOptionIds, categoryId } = await req.json();
+    const { name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId } = await req.json();
 
     if (!name || !description || !basePrice || !thumbnail || !widthPx || !heightPx) {
       return NextResponse.json({ error: 'Missing mandatory fields' }, { status: 400 });
@@ -72,6 +72,7 @@ export async function POST(req: Request) {
             widthPx: parseInt(widthPx),
             heightPx: parseInt(heightPx),
             bleedMm: parseFloat(bleedMm || '0'),
+            dpi: dpi ? parseInt(dpi) : null,
             globalOptionIds: globalOptionIds || [],
             categoryId: categoryId || null
           },
@@ -132,7 +133,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized. Admin permissions required.' }, { status: 403 });
     }
 
-    const { id, name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, specs, globalOptionIds, categoryId } = await req.json();
+    const { id, name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId } = await req.json();
 
     if (!id || !name || !description || !basePrice || !thumbnail || !widthPx || !heightPx) {
       return NextResponse.json({ error: 'Missing mandatory fields' }, { status: 400 });
@@ -169,6 +170,7 @@ export async function PUT(req: Request) {
           widthPx: parseInt(widthPx),
           heightPx: parseInt(heightPx),
           bleedMm: parseFloat(bleedMm || '0'),
+          dpi: dpi ? parseInt(dpi) : null,
           globalOptionIds: globalOptionIds || [],
           categoryId: categoryId || null,
           specs: {
