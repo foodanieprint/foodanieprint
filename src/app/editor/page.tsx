@@ -123,12 +123,12 @@ function EditorContent() {
     }
   };
 
-  // Refetch templates when product or selectedSpecs changes
+  // Refetch templates when product, selectedSpecs or selectedTab changes (lazy load when templates tab is active)
   useEffect(() => {
-    if (product && product.id) {
+    if (product && product.id && selectedTab === 'templates') {
       loadTemplates(product.id, selectedSpecs);
     }
-  }, [product, selectedSpecs]);
+  }, [product, selectedSpecs, selectedTab]);
 
   // Check user role and load designer settings on mount
   useEffect(() => {
