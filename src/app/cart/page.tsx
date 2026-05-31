@@ -97,11 +97,15 @@ export default function CartPage() {
                       
                       {/* Opciones Seleccionadas */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {Object.entries(parsedSpecs).map(([key, val]: [string, any]) => (
-                          <span key={key} style={{ fontSize: '11px', background: 'var(--bg-input)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-                            {key}: {val}
-                          </span>
-                        ))}
+                        {Object.entries(parsedSpecs).map(([key, val]: [string, any]) => {
+                          const isStandOption = key.toLowerCase().includes('stand');
+                          const isYesValue = val.toLowerCase() === 'yes' || val.toLowerCase() === 'sí' || val.toLowerCase() === 'si';
+                          return (
+                            <span key={key} style={{ fontSize: '11px', background: 'var(--bg-input)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                              {key}: {val} {isStandOption && isYesValue && `(Includes ${item.quantity} H-Stands)`}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
 

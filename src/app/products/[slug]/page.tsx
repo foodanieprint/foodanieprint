@@ -714,8 +714,15 @@ function ProductDetailContent() {
             <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>Estimated unit price:</span>
-                <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--accent-primary)', fontFamily: 'var(--font-title)' }}>
-                  ${unitPrice.toFixed(2)}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--accent-primary)', fontFamily: 'var(--font-title)' }}>
+                    ${unitPrice.toFixed(2)}
+                  </div>
+                  {Object.entries(selectedSpecs).some(([k, v]: [string, any]) => k.toLowerCase().includes('stand') && (v.toLowerCase() === 'yes' || v.toLowerCase() === 'si' || v.toLowerCase() === 'sí')) && (
+                    <div style={{ fontSize: '11px', color: '#5b9317', fontWeight: 'bold', marginTop: '2px' }}>
+                      * Includes 1 H-Stand per Yard Sign ordered
+                    </div>
+                  )}
                 </div>
               </div>
               
