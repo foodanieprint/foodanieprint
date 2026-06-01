@@ -70,6 +70,20 @@ function ProductDetailContent() {
       }
     });
 
+    // Determinar cantidad actual desde las especificaciones para multiplicadores
+    let specQty = 1;
+    let hasQtySpec = false;
+    Object.entries(selectedSpecs).forEach(([k, v]: [string, any]) => {
+      if (k.toLowerCase().includes('quantity') || k.toLowerCase().includes('cantidad') || k.toLowerCase() === 'qty') {
+        const parsed = parseInt(v.replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          specQty = parsed;
+          hasQtySpec = true;
+        }
+      }
+    });
+    const currentQuantity = specQty;
+
     let price = basePrice;
     Object.entries(selectedSpecs).forEach(([group, value]) => {
       const match = product.specs.find((s: any) => s.group === group && s.value === value);
@@ -79,7 +93,9 @@ function ProductDetailContent() {
 
         const actualMarkup = match.markupType === 'PERCENTAGE'
           ? (basePrice * match.priceMarkup) / 100
-          : match.priceMarkup;
+          : match.markupType === 'MULTIPLY_BY_QTY'
+            ? match.priceMarkup * currentQuantity
+            : match.priceMarkup;
         price += actualMarkup;
       }
     });

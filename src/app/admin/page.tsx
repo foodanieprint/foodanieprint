@@ -1781,6 +1781,7 @@ export default function AdminPage() {
                       >
                         <option value="FLAT">Flat ($)</option>
                         <option value="PERCENTAGE">Percent (%)</option>
+                        <option value="MULTIPLY_BY_QTY">Multiply by Qty</option>
                       </select>
 
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
@@ -1943,7 +1944,9 @@ export default function AdminPage() {
                                   : (attr.priceMarkup > 0 
                                       ? (attr.markupType === 'PERCENTAGE' 
                                           ? `+${attr.priceMarkup}%` 
-                                          : `+$${Number(attr.priceMarkup).toFixed(2)}`) 
+                                          : attr.markupType === 'MULTIPLY_BY_QTY'
+                                            ? `+$${Number(attr.priceMarkup).toFixed(2)} × Qty`
+                                            : `+$${Number(attr.priceMarkup).toFixed(2)}`) 
                                       : 'Base Price')}
                               </span>
                             </div>
@@ -2127,6 +2130,7 @@ export default function AdminPage() {
                         >
                           <option value="FLAT">Flat ($)</option>
                           <option value="PERCENTAGE">Percent (%)</option>
+                          <option value="MULTIPLY_BY_QTY">Multiply by Qty</option>
                         </select>
                       </div>
 
