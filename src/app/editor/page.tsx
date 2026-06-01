@@ -2733,11 +2733,25 @@ function EditorContent() {
 
         {/* PRECIO FINAL Y AGREGAR AL CARRITO */}
         <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: 'auto' }}>
-          {Object.entries(selectedSpecs).some(([k, v]: [string, any]) => k.toLowerCase().includes('stand') && (v.toLowerCase() === 'yes' || v.toLowerCase() === 'si' || v.toLowerCase() === 'sí')) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(140, 198, 63, 0.1)', border: '1.5px solid rgba(140, 198, 63, 0.3)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', marginBottom: '14px', color: '#5b9317', fontWeight: 'bold' }}>
-              <span>✔ Includes {quantity} H-Stands (1 per Yard Sign)</span>
-            </div>
-          )}
+          {Object.entries(selectedSpecs).some(([k, v]: [string, any]) => k.toLowerCase().includes('stand') && (v.toLowerCase() === 'yes' || v.toLowerCase() === 'si' || v.toLowerCase() === 'sí')) && (() => {
+            let specQty = 1;
+            let hasQtySpec = false;
+            Object.entries(selectedSpecs).forEach(([k, v]: [string, any]) => {
+              if (k.toLowerCase().includes('quantity') || k.toLowerCase().includes('cantidad') || k.toLowerCase() === 'qty') {
+                const parsed = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                if (!isNaN(parsed) && parsed > 0) {
+                  specQty = parsed;
+                  hasQtySpec = true;
+                }
+              }
+            });
+            const totalStands = hasQtySpec ? (specQty * quantity) : quantity;
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(140, 198, 63, 0.1)', border: '1.5px solid rgba(140, 198, 63, 0.3)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', marginBottom: '14px', color: '#5b9317', fontWeight: 'bold' }}>
+                <span>✔ Includes {totalStands} H-Stands (1 per Yard Sign)</span>
+              </div>
+            );
+          })()}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Price Per Unit:</span>
             <span style={{ fontSize: '16px', fontWeight: '600' }}>${totalPrice.toFixed(2)}</span>

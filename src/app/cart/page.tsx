@@ -97,15 +97,31 @@ export default function CartPage() {
                       
                       {/* Opciones Seleccionadas */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {Object.entries(parsedSpecs).map(([key, val]: [string, any]) => {
-                          const isStandOption = key.toLowerCase().includes('stand');
-                          const isYesValue = val.toLowerCase() === 'yes' || val.toLowerCase() === 'sí' || val.toLowerCase() === 'si';
-                          return (
-                            <span key={key} style={{ fontSize: '11px', background: 'var(--bg-input)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-                              {key}: {val} {isStandOption && isYesValue && `(Includes ${item.quantity} H-Stands)`}
-                            </span>
-                          );
-                        })}
+                        {(() => {
+                          // Calcular cantidad real basada en specs
+                          let specQty = 1;
+                          let hasQtySpec = false;
+                          Object.entries(parsedSpecs).forEach(([k, v]: [string, any]) => {
+                            if (k.toLowerCase().includes('quantity') || k.toLowerCase().includes('cantidad') || k.toLowerCase() === 'qty') {
+                              const parsed = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                              if (!isNaN(parsed) && parsed > 0) {
+                                specQty = parsed;
+                                hasQtySpec = true;
+                              }
+                            }
+                          });
+                          const totalStands = hasQtySpec ? (specQty * item.quantity) : item.quantity;
+
+                          return Object.entries(parsedSpecs).map(([key, val]: [string, any]) => {
+                            const isStandOption = key.toLowerCase().includes('stand');
+                            const isYesValue = val.toLowerCase() === 'yes' || val.toLowerCase() === 'sí' || val.toLowerCase() === 'si';
+                            return (
+                              <span key={key} style={{ fontSize: '11px', background: 'var(--bg-input)', padding: '2px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                                {key}: {val} {isStandOption && isYesValue && `(Includes ${totalStands} H-Stands)`}
+                              </span>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
 

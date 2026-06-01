@@ -2075,6 +2075,7 @@ export default function AdminPage() {
                           <option value="in">in</option>
                           <option value="cm">cm</option>
                           <option value="px">px</option>
+                          <option value="qty">Qty</option>
                         </select>
                       </div>
 
