@@ -2045,12 +2045,14 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', gap: '12px', paddingBottom: '4px', borderBottom: '1px solid var(--border-color)', marginBottom: '4px', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                  <div style={{ display: 'flex', gap: '12px', paddingBottom: '4px', borderBottom: '1px solid var(--border-color)', marginBottom: '4px', fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)', alignItems: 'center' }}>
                     <div style={{ flex: 1.5 }}>Label</div>
                     <div style={{ flex: 1 }}>Unit of Measurement</div>
                     <div style={{ flex: 0.8 }}>Horizontal</div>
                     <div style={{ flex: 0.8 }}>Vertical</div>
                     <div style={{ flex: 0.8 }}>Price Markup</div>
+                    <div style={{ flex: 0.8 }}>Markup Type</div>
+                    <div style={{ width: '110px' }}>Is Base Price</div>
                     <div style={{ width: '32px' }}></div>
                   </div>
                   {newOptionAttributes.map((row, idx) => (
@@ -2134,7 +2136,7 @@ export default function AdminPage() {
                         </select>
                       </div>
 
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', width: '110px' }}>
                         <input
                           type="checkbox"
                           checked={row.isBasePrice || false}
@@ -2147,7 +2149,7 @@ export default function AdminPage() {
                       <button 
                         type="button" 
                         onClick={() => handleRemoveAttributeRow(idx)}
-                        style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', padding: '8px', cursor: 'pointer' }}
+                        style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
                       >
                         <Trash2 size={14} />
                       </button>
