@@ -101,24 +101,6 @@ function ProductDetailContent() {
     });
   }, [selectedSpecs, product]);
 
-  // Switch main image to specification image if available when specifications change
-  useEffect(() => {
-    if (!product) return;
-    
-    let specImg = '';
-    Object.entries(selectedSpecs).forEach(([group, value]) => {
-      const match = product.specs.find((s: any) => s.group === group && s.value === value);
-      if (match && match.imageUrl && match.imageUrl.trim()) {
-        specImg = match.imageUrl;
-      }
-    });
-
-    if (specImg) {
-      setActiveImage(specImg);
-    } else {
-      setActiveImage(product.thumbnail || '');
-    }
-  }, [selectedSpecs, product]);
 
   if (loading) {
     return (
@@ -164,7 +146,26 @@ function ProductDetailContent() {
                 : typeof product.images === 'string'
                   ? JSON.parse(product.images || '[]')
                   : [];
-              const finalImages = galleryImages.length > 0 ? galleryImages : [product.thumbnail];
+              
+              const specImages = product.specs
+                ? product.specs
+                    .map((s: any) => s.imageUrl)
+                    .filter((url: any) => url && typeof url === 'string' && url.trim() !== '')
+                : [];
+
+              const allImagesSet = new Set<string>();
+              if (product.thumbnail) {
+                allImagesSet.add(product.thumbnail);
+              }
+              galleryImages.forEach((img: string) => {
+                if (img) allImagesSet.add(img);
+              });
+              specImages.forEach((img: string) => {
+                if (img) allImagesSet.add(img);
+              });
+
+              const finalImages = Array.from(allImagesSet);
+
 
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -514,7 +515,14 @@ function ProductDetailContent() {
                               )}
                               <button
                                 type="button"
-                                onClick={() => setSelectedSpecs({ ...selectedSpecs, [group]: spec.value })}
+                                onClick={() => {
+                                  setSelectedSpecs({ ...selectedSpecs, [group]: spec.value });
+                                  if (spec.imageUrl && spec.imageUrl.trim()) {
+                                    setActiveImage(spec.imageUrl);
+                                  } else {
+                                    setActiveImage(product.thumbnail || '');
+                                  }
+                                }}
                                 style={{
                                   flex: 1,
                                   height: '100%',
@@ -647,6 +655,11 @@ function ProductDetailContent() {
                                   onClick={() => {
                                     setSelectedSpecs({ ...selectedSpecs, [group]: spec.value });
                                     setOpenDropdown(null);
+                                    if (spec.imageUrl && spec.imageUrl.trim()) {
+                                      setActiveImage(spec.imageUrl);
+                                    } else {
+                                      setActiveImage(product.thumbnail || '');
+                                    }
                                   }}
                                   style={{
                                     padding: '12px 16px', // Comfortable padding as requested!
