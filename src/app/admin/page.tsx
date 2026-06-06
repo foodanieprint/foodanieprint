@@ -576,7 +576,8 @@ export default function AdminPage() {
       vertical: (spec.vertical || 0).toString(),
       priceMarkup: spec.priceMarkup.toString(),
       markupType: spec.markupType || 'FLAT',
-      isBasePrice: spec.isBasePrice || false
+      isBasePrice: spec.isBasePrice || false,
+      imageUrl: spec.imageUrl || ''
     }));
     setNewProdSpecs(mappedSpecs);
     
