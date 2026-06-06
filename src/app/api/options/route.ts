@@ -43,6 +43,7 @@ export async function POST(req: Request) {
               priceMarkup: parseFloat(attr.priceMarkup || '0'),
               markupType: attr.markupType || 'FLAT',
               isBasePrice: attr.isBasePrice ?? false,
+              imageUrl: attr.imageUrl || null,
               horizontal: typeof attr.horizontal === 'number' ? attr.horizontal : (parseFloat(attr.horizontal) || 0),
               vertical: typeof attr.vertical === 'number' ? attr.vertical : (parseFloat(attr.vertical) || 0),
             }))
@@ -91,6 +92,7 @@ export async function PUT(req: Request) {
               priceMarkup: parseFloat(attr.priceMarkup || '0'),
               markupType: attr.markupType || 'FLAT',
               isBasePrice: attr.isBasePrice ?? false,
+              imageUrl: attr.imageUrl || null,
               horizontal: typeof attr.horizontal === 'number' ? attr.horizontal : (parseFloat(attr.horizontal) || 0),
               vertical: typeof attr.vertical === 'number' ? attr.vertical : (parseFloat(attr.vertical) || 0),
             }))

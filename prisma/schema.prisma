@@ -66,6 +66,7 @@ model ProductSpec {
   priceMarkup Float    // Incremento de precio por seleccionar esta opción
   markupType  String   @default("FLAT") // "FLAT" o "PERCENTAGE"
   isBasePrice Boolean  @default(false) // Si es true, el valor reemplaza el precio base del producto
+  imageUrl    String?  // URL de la imagen del atributo si se desea cambiar el display
   position    Int      @default(0)
   horizontal  Float    @default(0)
   vertical    Float    @default(0)
@@ -140,6 +141,7 @@ model GlobalAttribute {
   priceMarkup Float        
   markupType  String       @default("FLAT") // "FLAT" o "PERCENTAGE"
   isBasePrice Boolean      @default(false) // Si es true, el valor reemplaza el precio base del producto
+  imageUrl    String?      // URL de la imagen del atributo si se desea cambiar el display
   horizontal  Float        @default(0)
   vertical    Float        @default(0)
 

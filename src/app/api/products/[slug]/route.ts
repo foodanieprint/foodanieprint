@@ -97,6 +97,7 @@ export async function GET(
                 priceMarkup: attr.priceMarkup,
                 markupType: attr.markupType || 'FLAT',
                 isBasePrice: attr.isBasePrice ?? false,
+                imageUrl: attr.imageUrl || null,
                 horizontal: attr.horizontal || 0,
                 vertical: attr.vertical || 0,
               });
@@ -115,6 +116,7 @@ export async function GET(
       if (match) {
         return {
           ...spec,
+          imageUrl: spec.imageUrl || match.imageUrl || null,
           metric: spec.metric || match.metric || 'none',
           horizontal: spec.horizontal || match.horizontal || 0,
           vertical: spec.vertical || match.vertical || 0

@@ -129,9 +129,9 @@ export default function AdminPage() {
   const [selectedGlobalOptionIds, setSelectedGlobalOptionIds] = useState<string[]>([]);
   
   // Especificaciones dinámicas en creación de productos
-  const [newProdSpecs, setNewProdSpecs] = useState<Array<{ id?: string; group: string; value: string; horizontal?: string; vertical?: string; priceMarkup: string; markupType: string; isBasePrice: boolean }>>([
-    { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
-    { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
+  const [newProdSpecs, setNewProdSpecs] = useState<Array<{ id?: string; group: string; value: string; horizontal?: string; vertical?: string; priceMarkup: string; markupType: string; isBasePrice: boolean; imageUrl: string }>>([
+    { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
+    { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
   ]);
 
   // Estado del creador de Global Options & Attributes
@@ -140,9 +140,9 @@ export default function AdminPage() {
   const [newOptionDesc, setNewOptionDesc] = useState('');
   const [newOptionCategoryId, setNewOptionCategoryId] = useState('');
   const [selectedOptionCategoryIds, setSelectedOptionCategoryIds] = useState<string[]>([]);
-  const [newOptionAttributes, setNewOptionAttributes] = useState<Array<{ id?: string; value: string; metric: string; horizontal: string; vertical: string; priceMarkup: string; markupType: string; isBasePrice: boolean }>>([
-    { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
-    { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
+  const [newOptionAttributes, setNewOptionAttributes] = useState<Array<{ id?: string; value: string; metric: string; horizontal: string; vertical: string; priceMarkup: string; markupType: string; isBasePrice: boolean; imageUrl: string }>>([
+    { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
+    { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
   ]);
 
   // Estado del creador de Categorías
@@ -392,6 +392,7 @@ export default function AdminPage() {
     let defaultIsBasePrice = false;
     let defaultHoriz = '0';
     let defaultVert = '0';
+    let defaultImageUrl = '';
     if (selectedOpt && selectedOpt.attributes && selectedOpt.attributes.length > 0) {
       defaultValue = selectedOpt.attributes[0].value;
       defaultMarkup = String(selectedOpt.attributes[0].priceMarkup);
@@ -399,6 +400,7 @@ export default function AdminPage() {
       defaultIsBasePrice = selectedOpt.attributes[0].isBasePrice || false;
       defaultHoriz = String(selectedOpt.attributes[0].horizontal || '0');
       defaultVert = String(selectedOpt.attributes[0].vertical || '0');
+      defaultImageUrl = selectedOpt.attributes[0].imageUrl || '';
     }
     setNewProdSpecs([...newProdSpecs, { 
       group: defaultGroup, 
@@ -407,7 +409,8 @@ export default function AdminPage() {
       markupType: defaultMarkupType,
       isBasePrice: defaultIsBasePrice,
       horizontal: defaultHoriz,
-      vertical: defaultVert 
+      vertical: defaultVert,
+      imageUrl: defaultImageUrl
     }]);
   };
 
@@ -430,6 +433,7 @@ export default function AdminPage() {
             newRow.isBasePrice = selectedOpt.attributes[0].isBasePrice || false;
             newRow.horizontal = String(selectedOpt.attributes[0].horizontal || '0');
             newRow.vertical = String(selectedOpt.attributes[0].vertical || '0');
+            newRow.imageUrl = selectedOpt.attributes[0].imageUrl || '';
           } else {
             newRow.value = '';
             newRow.priceMarkup = '0';
@@ -437,6 +441,7 @@ export default function AdminPage() {
             newRow.isBasePrice = false;
             newRow.horizontal = '0';
             newRow.vertical = '0';
+            newRow.imageUrl = '';
           }
         }
         return newRow;
@@ -525,8 +530,8 @@ export default function AdminPage() {
         setNewProdCategoryId('');
         setSelectedGlobalOptionIds([]);
         setNewProdSpecs([
-          { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
-          { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
+          { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
+          { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
         ]);
         setNewProdDpi('');
         setEditingProductId(null);
@@ -593,8 +598,8 @@ export default function AdminPage() {
     setNewProdCategoryId('');
     setSelectedGlobalOptionIds([]);
     setNewProdSpecs([
-      { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
-      { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
+      { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
+      { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
     ]);
     setEditingProductId(null);
     setActiveTab('create-product');
@@ -622,7 +627,7 @@ export default function AdminPage() {
 
   // 9. Configurar Attributes en fila (Global Options)
   const handleAddAttributeRow = () => {
-    setNewOptionAttributes([...newOptionAttributes, { value: '', metric: 'none', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false }]);
+    setNewOptionAttributes([...newOptionAttributes, { value: '', metric: 'none', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }]);
   };
 
   const handleRemoveAttributeRow = (idx: number) => {
@@ -676,8 +681,8 @@ export default function AdminPage() {
         setNewOptionCategoryId('');
         setSelectedOptionCategoryIds([]);
         setNewOptionAttributes([
-          { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
-          { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false }
+          { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
+          { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
         ]);
         setEditingOptionId(null);
         setActiveTab('options-attributes');
@@ -718,7 +723,8 @@ export default function AdminPage() {
       vertical: (attr.vertical || 0).toString(),
       priceMarkup: attr.priceMarkup.toString(),
       markupType: attr.markupType || 'FLAT',
-      isBasePrice: attr.isBasePrice || false
+      isBasePrice: attr.isBasePrice || false,
+      imageUrl: attr.imageUrl || ''
     }));
     setNewOptionAttributes(mappedAttrs);
     
@@ -733,9 +739,9 @@ export default function AdminPage() {
     setNewOptionCategoryId('');
     setSelectedOptionCategoryIds([]);
     setNewOptionAttributes([
-      { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false },
-      { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false },
-      { value: '5x7', metric: 'in', horizontal: '5', vertical: '7', priceMarkup: '5.00', markupType: 'FLAT', isBasePrice: false }
+      { value: '3.5x2', metric: 'in', horizontal: '3.5', vertical: '2', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
+      { value: '4x6', metric: 'in', horizontal: '4', vertical: '6', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
+      { value: '5x7', metric: 'in', horizontal: '5', vertical: '7', priceMarkup: '5.00', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
     ]);
     setEditingOptionId(null);
     setActiveTab('create-option');
@@ -1720,6 +1726,9 @@ export default function AdminPage() {
                                 const markup = matchedAttr ? String(matchedAttr.priceMarkup) : '0';
                                 const horiz = matchedAttr ? String(matchedAttr.horizontal || '0') : '0';
                                 const vert = matchedAttr ? String(matchedAttr.vertical || '0') : '0';
+                                const markupType = matchedAttr ? (matchedAttr.markupType || 'FLAT') : 'FLAT';
+                                const isBase = matchedAttr ? (matchedAttr.isBasePrice || false) : false;
+                                const img = matchedAttr ? (matchedAttr.imageUrl || '') : '';
                                 
                                 const updated = newProdSpecs.map((r, i) => {
                                   if (i === idx) return { 
@@ -1727,7 +1736,10 @@ export default function AdminPage() {
                                     value: val, 
                                     priceMarkup: markup,
                                     horizontal: horiz,
-                                    vertical: vert 
+                                    vertical: vert,
+                                    markupType: markupType,
+                                    isBasePrice: isBase,
+                                    imageUrl: img
                                   };
                                   return r;
                                 });
@@ -1784,7 +1796,50 @@ export default function AdminPage() {
                         <option value="MULTIPLY_BY_QTY">Multiply by Qty</option>
                       </select>
 
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                      <div style={{ flex: 1.2, display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        {row.imageUrl ? (
+                          <div style={{ width: '28px', height: '28px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)', flexShrink: 0 }}>
+                            <img src={row.imageUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        ) : (
+                          <div style={{ width: '28px', height: '28px', borderRadius: '4px', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                            No
+                          </div>
+                        )}
+                        <input 
+                          type="text" 
+                          className="input-field" 
+                          style={{ padding: '8px', fontSize: '12px', flex: 1 }} 
+                          value={row.imageUrl || ''} 
+                          onChange={(e) => handleSpecRowChange(idx, 'imageUrl', e.target.value)} 
+                          placeholder="Image URL"
+                        />
+                        <input 
+                          type="file" 
+                          id={`spec-file-upload-${idx}`} 
+                          accept="image/*" 
+                          style={{ display: 'none' }} 
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = await handleUploadFile(file);
+                              if (url) {
+                                handleSpecRowChange(idx, 'imageUrl', url);
+                              }
+                            }
+                          }}
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => document.getElementById(`spec-file-upload-${idx}`)?.click()}
+                          style={{ padding: '6px 8px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          title="Upload image file"
+                        >
+                          <Upload size={12} />
+                        </button>
+                      </div>
+
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', width: '110px' }}>
                         <input
                           type="checkbox"
                           checked={row.isBasePrice || false}
@@ -1797,7 +1852,7 @@ export default function AdminPage() {
                       <button 
                         type="button" 
                         onClick={() => handleRemoveSpecRow(idx)}
-                        style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', padding: '8px', cursor: 'pointer' }}
+                        style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -2052,6 +2107,7 @@ export default function AdminPage() {
                     <div style={{ flex: 0.8 }}>Vertical</div>
                     <div style={{ flex: 0.8 }}>Price Markup</div>
                     <div style={{ flex: 0.8 }}>Markup Type</div>
+                    <div style={{ flex: 1.2 }}>Image URL / Upload</div>
                     <div style={{ width: '110px' }}>Is Base Price</div>
                     <div style={{ width: '32px' }}></div>
                   </div>
@@ -2134,6 +2190,49 @@ export default function AdminPage() {
                           <option value="PERCENTAGE">Percent (%)</option>
                           <option value="MULTIPLY_BY_QTY">Multiply by Qty</option>
                         </select>
+                      </div>
+
+                      <div style={{ flex: 1.2, display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        {row.imageUrl ? (
+                          <div style={{ width: '28px', height: '28px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)', flexShrink: 0 }}>
+                            <img src={row.imageUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        ) : (
+                          <div style={{ width: '28px', height: '28px', borderRadius: '4px', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                            No
+                          </div>
+                        )}
+                        <input 
+                          type="text" 
+                          className="input-field" 
+                          style={{ padding: '8px', fontSize: '12px', flex: 1 }} 
+                          value={row.imageUrl || ''} 
+                          onChange={(e) => handleAttributeRowChange(idx, 'imageUrl', e.target.value)} 
+                          placeholder="Image URL"
+                        />
+                        <input 
+                          type="file" 
+                          id={`attr-file-upload-${idx}`} 
+                          accept="image/*" 
+                          style={{ display: 'none' }} 
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = await handleUploadFile(file);
+                              if (url) {
+                                handleAttributeRowChange(idx, 'imageUrl', url);
+                              }
+                            }
+                          }}
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => document.getElementById(`attr-file-upload-${idx}`)?.click()}
+                          style={{ padding: '6px 8px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          title="Upload image file"
+                        >
+                          <Upload size={12} />
+                        </button>
                       </div>
 
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', width: '110px' }}>

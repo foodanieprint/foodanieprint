@@ -99,7 +99,23 @@ function ProductDetailContent() {
         price += actualMarkup;
       }
     });
-    setUnitPrice(price);
+  }, [selectedSpecs, product]);
+
+  // Switch main image to specification image if available when specifications change
+  useEffect(() => {
+    if (!product) return;
+    
+    let specImg = '';
+    Object.entries(selectedSpecs).forEach(([group, value]) => {
+      const match = product.specs.find((s: any) => s.group === group && s.value === value);
+      if (match && match.imageUrl && match.imageUrl.trim()) {
+        specImg = match.imageUrl;
+      }
+    });
+
+    if (specImg) {
+      setActiveImage(specImg);
+    }
   }, [selectedSpecs, product]);
 
   if (loading) {
