@@ -115,6 +115,8 @@ function ProductDetailContent() {
 
     if (specImg) {
       setActiveImage(specImg);
+    } else {
+      setActiveImage(product.thumbnail || '');
     }
   }, [selectedSpecs, product]);
 
