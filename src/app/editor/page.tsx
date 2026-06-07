@@ -1127,9 +1127,13 @@ function EditorContent() {
 
   const selectedEl = getSelectedElement();
 
-  // Calculate dynamic ruler ticks based on size & metric specifications
-  const sizeVal = selectedSpecs['Size'] || selectedSpecs['Tamaño'] || '';
-  const selectedSpec = product?.specs?.find((s: any) => (s.group === 'Size' || s.group === 'Tamaño') && s.value === sizeVal);
+  // Calculate dynamic ruler ticks based on size & metric specifications (case-insensitive key lookup)
+  const sizeKey = Object.keys(selectedSpecs).find(k => k.toLowerCase() === 'size' || k.toLowerCase() === 'tamaño') || 'Size';
+  const sizeVal = selectedSpecs[sizeKey] || '';
+  const selectedSpec = product?.specs?.find((s: any) => 
+    (s.group.toLowerCase() === 'size' || s.group.toLowerCase() === 'tamaño') && 
+    s.value.toLowerCase().trim() === sizeVal.toLowerCase().trim()
+  );
   const metric = (selectedSpec?.metric || 'in').toLowerCase().trim();
 
   let pxPerUnit = dpiValue;

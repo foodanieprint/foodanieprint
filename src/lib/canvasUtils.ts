@@ -4,10 +4,16 @@ export function getCanvasDimensions(product: any, selectedSpecs: Record<string, 
   let baseWidth = product.widthPx || 1050;
   let baseHeight = product.heightPx || 600;
 
-  const sizeVal = selectedSpecs['Size'] || selectedSpecs['Tamaño'] || selectedSpecs['size'] || '';
+  // Case-insensitive key lookup for Size
+  const sizeKey = Object.keys(selectedSpecs).find(k => k.toLowerCase() === 'size' || k.toLowerCase() === 'tamaño') || 'Size';
+  const sizeVal = selectedSpecs[sizeKey] || '';
+
   if (sizeVal) {
+    // Case-insensitive comparison for group and value
     const selectedSpec = product.specs?.find(
-      (s: any) => (s.group === 'Size' || s.group === 'Tamaño') && s.value === sizeVal
+      (s: any) => 
+        (s.group.toLowerCase() === 'size' || s.group.toLowerCase() === 'tamaño') && 
+        s.value.toLowerCase().trim() === sizeVal.toLowerCase().trim()
     );
     if (selectedSpec && selectedSpec.horizontal > 0 && selectedSpec.vertical > 0) {
       const metric = (selectedSpec.metric || '').toLowerCase().trim();
@@ -66,8 +72,14 @@ export function getCanvasDimensions(product: any, selectedSpecs: Record<string, 
     }
   }
 
-  // Adjust for Orientation changes
-  const orientationVal = selectedSpecs['Orientation'] || selectedSpecs['Orientación'] || selectedSpecs['Orientacion'] || selectedSpecs['orientation'] || '';
+  // Adjust for Orientation changes (case-insensitive key lookup)
+  const orientationKey = Object.keys(selectedSpecs).find(k => 
+    k.toLowerCase() === 'orientation' || 
+    k.toLowerCase() === 'orientación' || 
+    k.toLowerCase() === 'orientacion'
+  ) || 'Orientation';
+  const orientationVal = selectedSpecs[orientationKey] || '';
+
   if (orientationVal.toLowerCase().includes('vertical') || orientationVal.toLowerCase() === 'vertical') {
     const w = baseWidth;
     const h = baseHeight;
