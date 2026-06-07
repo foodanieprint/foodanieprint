@@ -1314,7 +1314,7 @@ function EditorContent() {
         </div>
 
         {/* RIGHT PANEL: CONFIGURATION SIDEBAR */}
-        <aside className={`editor-properties-panel ${mobileTab === 'specs' ? '' : 'mobile-hide'}`} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <aside className={`editor-properties-panel ${mobileTab === 'specs' ? '' : 'mobile-hide'}`} style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', zIndex: 20 }}>
           <h3 style={{ fontSize: '18px', fontFamily: 'var(--font-title)', marginBottom: '4px' }}>Confirm Print Specifications</h3>
           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>{product.name}</p>
 
@@ -1811,7 +1811,7 @@ function EditorContent() {
       </div>
 
       {/* SIDEBAR DE HERRAMIENTAS (IZQUIERDO) */}
-      <aside className={`editor-sidebar ${mobileTab === 'tools' ? '' : 'mobile-hide'}`} style={{ display: 'flex', flexDirection: 'row', width: '360px', height: '100%', borderRight: '1px solid var(--border-color)' }}>
+      <aside className={`editor-sidebar ${mobileTab === 'tools' ? '' : 'mobile-hide'}`} style={{ display: 'flex', flexDirection: 'row', width: '360px', height: '100%', borderRight: '1px solid var(--border-color)', position: 'relative', zIndex: 20 }}>
         {/* COLUMNA VERTICAL DE TABS (IZQUIERDO) */}
         <div style={{ width: '76px', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)', borderRight: '1px solid var(--border-color)', height: '100%', alignItems: 'center', paddingTop: '16px', gap: '4px' }}>
           {/* TAB 1: PRODUCT OPTIONS */}
