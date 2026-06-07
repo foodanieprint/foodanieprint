@@ -8,7 +8,8 @@ import {
   Save, ShoppingCart, Plus, Minus, ArrowLeft,
   ChevronRight, Award, HelpCircle, ChevronDown,
   Sliders, Upload, Palette, Grid, Columns, Search, Maximize2,
-  Settings, Eye, EyeOff, Edit3, Shield
+  Settings, Eye, EyeOff, Edit3, Shield,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify
 } from 'lucide-react';
 import { getCanvasDimensions } from '@/lib/canvasUtils';
 
@@ -26,6 +27,9 @@ interface CanvasElement {
   color?: string;
   src?: string; // base64 or URL
   shapeType?: 'rect' | 'circle' | 'line' | 'triangle' | 'star' | 'sun' | 'sparkle';
+  fontStyle?: 'normal' | 'italic';
+  textAlign?: 'left' | 'center' | 'right' | 'justify';
+  fontWeight?: 'normal' | 'bold';
 }
 
 function EditorContent() {
@@ -1559,15 +1563,227 @@ function EditorContent() {
   }
 
   return (
-    <div className="editor-container" style={{ position: 'relative' }}>
-      {openDropdown && (
-        <div 
-          style={{ position: 'fixed', inset: 0, zIndex: 15 }} 
-          onClick={() => setOpenDropdown(null)} 
-        />
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* 1. TOP GLOBAL MENU BAR */}
+      <header style={{ height: '56px', background: '#ffffff', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', flexShrink: 0, zIndex: 100 }}>
+        {/* Left: Logo + Menus */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ff6600', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontWeight: 'bold', fontSize: '18px' }}>X</div>
+          <nav style={{ display: 'flex', gap: '16px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)' }}>
+            <span style={{ cursor: 'pointer' }}>File</span>
+            <span style={{ cursor: 'pointer' }}>Edit</span>
+            <span style={{ cursor: 'pointer' }}>View</span>
+            <span style={{ cursor: 'pointer' }}>?</span>
+          </nav>
+        </div>
 
-      {/* MOBILE EDITOR TAB BAR */}
+        {/* Center: Undo/Redo & Page Toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="editor-toolbar-btn" onClick={undo} disabled={historyIndex <= 0} style={{ opacity: historyIndex <= 0 ? 0.3 : 1, padding: '4px 8px' }} title="Undo"><Undo size={16} /> <span style={{ fontSize: '11px', marginLeft: '4px' }}>Undo</span></button>
+            <button className="editor-toolbar-btn" onClick={redo} disabled={historyIndex >= history.length - 1} style={{ opacity: historyIndex >= history.length - 1 ? 0.3 : 1, padding: '4px 8px' }} title="Redo"><Redo size={16} /> <span style={{ fontSize: '11px', marginLeft: '4px' }}>Redo</span></button>
+          </div>
+          {isDoubleSided() && (
+            <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px' }}>
+              <button onClick={() => switchPage('front')} style={{ border: 'none', background: activePage === 'front' ? '#ffffff' : 'transparent', color: activePage === 'front' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 'bold', fontSize: '12px', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer' }}>Front</button>
+              <button onClick={() => switchPage('back')} style={{ border: 'none', background: activePage === 'back' ? '#ffffff' : 'transparent', color: activePage === 'back' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 'bold', fontSize: '12px', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer' }}>Back</button>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', borderRadius: '6px' }} onClick={() => alert("3D Preview Rendering simulation...")}>3D</button>
+          <button className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', borderRadius: '6px' }} onClick={() => alert("Share link copied to clipboard!")}>Share</button>
+          <button className="btn btn-primary btn-sm" style={{ padding: '6px 16px', borderRadius: '6px', background: '#002447', borderColor: '#002447' }} onClick={saveDesignAndCheckout}>
+            Process &rarr;
+          </button>
+        </div>
+      </header>
+
+      {/* 2. DYNAMIC CONTEXTUAL TOOLBAR */}
+      <div style={{ height: '46px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: '12px', flexShrink: 0, zIndex: 90 }}>
+        {selectedEl ? (
+          <>
+            {selectedEl.type === 'text' && (
+              <>
+                {/* Font selection */}
+                <select 
+                  className="input-field"
+                  style={{ width: '180px', padding: '4px 8px', fontSize: '13px', height: '32px' }}
+                  value={selectedEl.fontFamily || 'Inter'}
+                  onChange={(e) => updateSelectedElement({ fontFamily: e.target.value })}
+                >
+                  <option value="Inter">Inter (Clean Sans)</option>
+                  <option value="Outfit">Outfit (Bold Tech)</option>
+                  <option value="Courier New">Courier (Monospace)</option>
+                  <option value="Georgia">Georgia (Elegant Serif)</option>
+                </select>
+
+                {/* Font size */}
+                <input 
+                  type="number"
+                  className="input-field"
+                  style={{ width: '70px', padding: '4px 8px', fontSize: '13px', height: '32px' }}
+                  value={selectedEl.fontSize || 16}
+                  onChange={(e) => updateSelectedElement({ fontSize: parseInt(e.target.value) || 12 })}
+                />
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Pt</span>
+
+                <div style={{ width: '1px', background: 'var(--border-color)', height: '20px' }}></div>
+
+                {/* Color picker */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input 
+                    type="color"
+                    style={{ border: 'none', background: 'none', width: '28px', height: '28px', cursor: 'pointer', padding: 0 }}
+                    value={selectedEl.color || '#000000'}
+                    onChange={(e) => updateSelectedElement({ color: e.target.value })}
+                  />
+                  <input 
+                    type="text"
+                    className="input-field"
+                    style={{ width: '80px', padding: '4px 8px', fontSize: '12px', height: '32px' }}
+                    value={selectedEl.color || '#000000'}
+                    onChange={(e) => updateSelectedElement({ color: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ width: '1px', background: 'var(--border-color)', height: '20px' }}></div>
+
+                {/* Bold toggle */}
+                <button 
+                  onClick={() => updateSelectedElement({ fontWeight: selectedEl.fontWeight === 'bold' ? 'normal' : 'bold' })}
+                  style={{
+                    height: '32px',
+                    width: '32px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    background: selectedEl.fontWeight === 'bold' ? '#e2e8f0' : '#ffffff',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Toggle Bold"
+                >
+                  B
+                </button>
+
+                {/* Italic toggle */}
+                <button 
+                  onClick={() => updateSelectedElement({ fontStyle: selectedEl.fontStyle === 'italic' ? 'normal' : 'italic' })}
+                  style={{
+                    height: '32px',
+                    width: '32px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    background: selectedEl.fontStyle === 'italic' ? '#e2e8f0' : '#ffffff',
+                    fontStyle: 'italic',
+                    fontFamily: 'Georgia, serif',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Toggle Italic"
+                >
+                  I
+                </button>
+
+                <div style={{ width: '1px', background: 'var(--border-color)', height: '20px' }}></div>
+
+                {/* Alignment toggles */}
+                <div style={{ display: 'flex', gap: '2px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '2px' }}>
+                  <button 
+                    onClick={() => updateSelectedElement({ textAlign: 'left' })}
+                    style={{ border: 'none', background: (selectedEl.textAlign || 'left') === 'left' ? '#e2e8f0' : 'transparent', padding: '4px', cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center' }}
+                    title="Align Left"
+                  >
+                    <AlignLeft size={14} />
+                  </button>
+                  <button 
+                    onClick={() => updateSelectedElement({ textAlign: 'center' })}
+                    style={{ border: 'none', background: selectedEl.textAlign === 'center' ? '#e2e8f0' : 'transparent', padding: '4px', cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center' }}
+                    title="Align Center"
+                  >
+                    <AlignCenter size={14} />
+                  </button>
+                  <button 
+                    onClick={() => updateSelectedElement({ textAlign: 'right' })}
+                    style={{ border: 'none', background: selectedEl.textAlign === 'right' ? '#e2e8f0' : 'transparent', padding: '4px', cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center' }}
+                    title="Align Right"
+                  >
+                    <AlignRight size={14} />
+                  </button>
+                  <button 
+                    onClick={() => updateSelectedElement({ textAlign: 'justify' })}
+                    style={{ border: 'none', background: selectedEl.textAlign === 'justify' ? '#e2e8f0' : 'transparent', padding: '4px', cursor: 'pointer', borderRadius: '2px', display: 'flex', alignItems: 'center' }}
+                    title="Justify"
+                  >
+                    <AlignJustify size={14} />
+                  </button>
+                </div>
+
+                <div style={{ width: '1px', background: 'var(--border-color)', height: '20px' }}></div>
+
+                {/* Case transform */}
+                <button 
+                  onClick={() => updateSelectedElement({ text: (selectedEl.text || '').toUpperCase() })}
+                  style={{
+                    height: '32px',
+                    padding: '0 8px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    background: '#ffffff',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                  title="Transform to Uppercase"
+                >
+                  aA
+                </button>
+              </>
+            )}
+
+            {selectedEl.type === 'shape' && (
+              <>
+                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Shape Fill:</span>
+                <input 
+                  type="color"
+                  style={{ border: 'none', background: 'none', width: '28px', height: '28px', cursor: 'pointer', padding: 0 }}
+                  value={selectedEl.color || '#000000'}
+                  onChange={(e) => updateSelectedElement({ color: e.target.value })}
+                />
+              </>
+            )}
+
+            <div style={{ width: '1px', background: 'var(--border-color)', height: '20px', marginLeft: 'auto' }}></div>
+            
+            {/* Layer Controls in Toolbar */}
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button className="editor-toolbar-btn" onClick={duplicateSelectedElement} title="Duplicate"><Copy size={14} /></button>
+              <button className="editor-toolbar-btn" onClick={() => moveLayer('up')} title="Bring to Front"><MoveUp size={14} /></button>
+              <button className="editor-toolbar-btn" onClick={() => moveLayer('down')} title="Send to Back"><MoveDown size={14} /></button>
+              <button className="editor-toolbar-btn danger" onClick={deleteSelectedElement} title="Delete"><Trash2 size={14} /></button>
+            </div>
+          </>
+        ) : (
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Select an element on canvas to display properties.</span>
+        )}
+      </div>
+
+      <div className="editor-container" style={{ position: 'relative', flex: 1, display: 'flex', height: 'auto', overflow: 'hidden' }}>
+        {openDropdown && (
+          <div 
+            style={{ position: 'fixed', inset: 0, zIndex: 15 }} 
+            onClick={() => setOpenDropdown(null)} 
+          />
+        )}
+
+        {/* MOBILE EDITOR TAB BAR */}
       <div className="editor-mobile-tab-bar desktop-hide">
         <button 
           className={`editor-mobile-tab ${mobileTab === 'canvas' ? 'active' : ''}`}
@@ -1688,48 +1904,292 @@ function EditorContent() {
             {/* TAB 1: PRODUCT OPTIONS */}
             {selectedTab === 'options' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                   <Sliders size={18} style={{ color: '#0284c7' }} />
-                  Product options
+                  Product Options
                 </h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                  Customize this product's specifications dynamically. Your canvas outline and pricing markup will adapt automatically.
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4', margin: 0 }}>
+                  Configure your product's size, quantity, and print options. The canvas adapts to your specifications.
                 </p>
+
+                {/* Name reference input */}
+                <div style={{ marginBottom: '8px' }}>
+                  <label className="form-label" style={{ fontSize: '11px', color: 'var(--text-primary)' }}>Design Reference Name</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    value={canvasName} 
+                    onChange={(e) => setCanvasName(e.target.value)} 
+                    placeholder="e.g. My Custom Print Design"
+                    style={{ padding: '8px 12px', fontSize: '13px' }}
+                  />
+                </div>
+
+                {/* Specs selectors */}
                 {product && product.specs && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {Object.entries(
                       product.specs.reduce((acc: any, spec: any) => {
                         if (!acc[spec.group]) acc[spec.group] = [];
                         acc[spec.group].push(spec);
                         return acc;
                       }, {})
-                    ).map(([group, specsList]: [string, any]) => (
-                      <div key={group} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>{group}</label>
-                        <select
-                          className="input-field"
-                          style={{ padding: '8px 12px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}
-                          value={selectedSpecs[group] || ''}
-                          onChange={(e) => setSelectedSpecs(prev => ({ ...prev, [group]: e.target.value }))}
-                        >
-                          {specsList.map((spec: any) => {
-                            const actualMarkup = spec.markupType === 'PERCENTAGE'
-                              ? (product.basePrice * spec.priceMarkup) / 100
-                              : spec.priceMarkup;
-                            const textMarkup = spec.priceMarkup > 0
-                              ? `(+$${actualMarkup.toFixed(2)})`
-                              : '';
-                            return (
-                              <option key={spec.id} value={spec.value}>
-                                {spec.value} {textMarkup}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </div>
-                    ))}
+                    ).map(([group, specsList]: [string, any]) => {
+                      const selectedValue = selectedSpecs[group] || '';
+                      const isNeutral = !selectedValue || 
+                                        selectedValue.toLowerCase() === 'none' || 
+                                        selectedValue.toLowerCase().includes('no special') ||
+                                        selectedValue.toLowerCase() === 'basic' ||
+                                        selectedValue.toLowerCase() === 'standard' ||
+                                        selectedValue.toLowerCase().includes('no back');
+                                        
+                      const borderColor = isNeutral ? 'var(--border-color)' : '#8cc63f';
+                      const labelColor = isNeutral ? 'var(--text-muted)' : '#5b9317';
+                      const isOrientation = group.toLowerCase() === 'orientation';
+                      const isPaper = group.toLowerCase() === 'paper' || group.toLowerCase() === 'paper stock';
+
+                      return (
+                        <div key={group} style={{ marginBottom: '2px', position: 'relative' }}>
+                          {isPaper && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+                              <a 
+                                href="#paper-thickness" 
+                                onClick={(e) => { 
+                                  e.preventDefault(); 
+                                  alert("Paper Thickness Guide:\n\n14 pt. Gloss is a thick, industry-standard cardstock with a glossy finish that makes colors vibrant.\n\n16 pt. Premium Matte is an extra-heavy premium cardstock with a soft, non-reflective matte finish for a luxury tactile experience."); 
+                                }} 
+                                style={{ 
+                                  fontSize: '10px', 
+                                  color: '#0066cc', 
+                                  textDecoration: 'none', 
+                                  cursor: 'pointer',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                Paper Thickness
+                              </a>
+                            </div>
+                          )}
+
+                          {isOrientation ? (
+                            <div 
+                              style={{ 
+                                position: 'relative',
+                                border: `1.5px solid #8cc63f`,
+                                borderRadius: '6px',
+                                background: 'var(--bg-secondary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                height: '42px',
+                                width: '100%'
+                              }}
+                            >
+                              <span style={{
+                                position: 'absolute',
+                                top: '-9px',
+                                left: '10px',
+                                background: '#ffffff',
+                                padding: '0 4px',
+                                fontSize: '9px',
+                                fontWeight: 'bold',
+                                color: '#5b9317',
+                                textTransform: 'uppercase',
+                                zIndex: 2
+                              }}>
+                                {group}
+                              </span>
+                              {specsList.map((spec: any, idx: number) => {
+                                const isSelected = selectedValue === spec.value;
+                                const isHorizontal = spec.value.toLowerCase() === 'horizontal';
+                                return (
+                                  <React.Fragment key={spec.id}>
+                                    {idx > 0 && (
+                                      <div style={{ width: '1.5px', height: '100%', background: 'var(--border-color)' }}></div>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedSpecs({ ...selectedSpecs, [group]: spec.value })}
+                                      style={{
+                                        flex: 1,
+                                        height: '100%',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '12px',
+                                        fontWeight: isSelected ? '700' : '500',
+                                        color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                        outline: 'none'
+                                      }}
+                                    >
+                                      {isHorizontal ? (
+                                        <div style={{ width: '16px', height: '10px', borderRadius: '1px', backgroundColor: isSelected ? '#8cc63f' : '#d1d5db' }} />
+                                      ) : (
+                                        <div style={{ width: '10px', height: '16px', borderRadius: '1px', backgroundColor: isSelected ? '#8cc63f' : '#d1d5db' }} />
+                                      )}
+                                      <span>{spec.value}</span>
+                                    </button>
+                                  </React.Fragment>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div 
+                              style={{ 
+                                position: 'relative',
+                                border: `1.5px solid ${borderColor}`,
+                                borderRadius: '6px',
+                                padding: '0 10px',
+                                background: 'var(--bg-secondary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                height: '42px',
+                                cursor: 'pointer',
+                                zIndex: openDropdown === group ? 25 : 1
+                              }}
+                              onClick={() => setOpenDropdown(openDropdown === group ? null : group)}
+                            >
+                              <span style={{
+                                position: 'absolute',
+                                top: '-9px',
+                                left: '10px',
+                                background: '#ffffff',
+                                padding: '0 4px',
+                                fontSize: '9px',
+                                fontWeight: 'bold',
+                                color: labelColor,
+                                textTransform: 'uppercase',
+                                zIndex: 2
+                              }}>
+                                {group}
+                              </span>
+                              <div style={{ width: '100%', fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)', paddingRight: '50px', display: 'flex', alignItems: 'center', height: '100%', userSelect: 'none' }}>
+                                {selectedValue}
+                              </div>
+
+                              {openDropdown === group && (
+                                <div 
+                                  style={{
+                                    position: 'absolute',
+                                    top: 'calc(100% + 4px)',
+                                    left: '-1.5px',
+                                    right: '-1.5px',
+                                    background: '#ffffff',
+                                    border: `1.5px solid ${borderColor}`,
+                                    borderRadius: '6px',
+                                    boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
+                                    zIndex: 30,
+                                    maxHeight: '180px',
+                                    overflowY: 'auto',
+                                    padding: '4px 0'
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {specsList.map((spec: any) => {
+                                    const isSelected = selectedValue === spec.value;
+                                    const actualMarkup = spec.markupType === 'PERCENTAGE'
+                                      ? (product.basePrice * spec.priceMarkup) / 100
+                                      : spec.priceMarkup;
+                                    const markupText = spec.priceMarkup > 0 
+                                      ? `(+$${actualMarkup.toFixed(2)})` 
+                                      : '';
+                                    return (
+                                      <div
+                                        key={spec.id}
+                                        onClick={() => {
+                                          setSelectedSpecs({ ...selectedSpecs, [group]: spec.value });
+                                          setOpenDropdown(null);
+                                        }}
+                                        style={{
+                                          padding: '8px 12px',
+                                          fontSize: '12px',
+                                          fontWeight: isSelected ? '700' : '500',
+                                          color: isSelected ? '#5b9317' : 'var(--text-primary)',
+                                          background: isSelected ? '#f5f9eb' : 'transparent',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center'
+                                        }}
+                                      >
+                                        <span>{spec.value}</span>
+                                        {spec.priceMarkup > 0 && (
+                                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{markupText}</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              
+                              <div style={{ position: 'absolute', right: '10px', display: 'flex', alignItems: 'center', gap: '6px', pointerEvents: 'none' }}>
+                                {(group.toLowerCase().includes('coating') || group.toLowerCase().includes('finish') || group.toLowerCase().includes('paper')) && (
+                                  <div 
+                                    title={
+                                      group.toLowerCase().includes('coating') 
+                                      ? "Coating protects your card and enhances colors."
+                                      : "Paper selection affects weight and texture."
+                                    }
+                                    style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#8cc63f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', cursor: 'help', pointerEvents: 'auto' }}
+                                  >
+                                    <span style={{ fontSize: '8px', fontWeight: 'bold' }}>?</span>
+                                  </div>
+                                )}
+                                {!isNeutral && (
+                                  <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#8cc63f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                                    <span style={{ fontSize: '8px', fontWeight: 'bold' }}>✔</span>
+                                  </div>
+                                )}
+                                <ChevronDown size={12} style={{ color: 'var(--text-secondary)' }} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
+
+                {/* Quantity */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label className="form-label" style={{ fontSize: '11px', color: 'var(--text-primary)', margin: 0 }}>Quantity (Packs)</label>
+                  <div style={{ display: 'flex', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', height: '36px' }}>
+                    <button type="button" className="btn" style={{ padding: '0 12px', border: 'none', background: 'var(--bg-primary)' }} onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus size={12} /></button>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold' }}>{quantity}</div>
+                    <button type="button" className="btn" style={{ padding: '0 12px', border: 'none', background: 'var(--bg-primary)' }} onClick={() => setQuantity(q => q + 1)}><Plus size={12} /></button>
+                  </div>
+                </div>
+
+                {/* Pricing subtotal */}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Price Per Unit:</span>
+                    <span style={{ fontSize: '14px', fontWeight: '600' }}>${totalPrice.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Estimated Subtotal:</span>
+                    <span style={{ fontSize: '20px', fontWeight: '800', color: 'var(--accent-primary)', fontFamily: 'var(--font-title)' }}>
+                      ${(totalPrice * quantity).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <button 
+                    type="button"
+                    className="btn btn-primary" 
+                    style={{ width: '100%', padding: '10px', fontSize: '12px' }} 
+                    onClick={saveDesignAndCheckout}
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving...' : (
+                      <>
+                        <ShoppingCart size={14} /> Add to Cart & Checkout
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -2227,65 +2687,13 @@ function EditorContent() {
         </div>
       </aside>
 
-      {/* SECCIÓN CENTRAL CON BARRA DE HERRAMIENTAS FIJA */}
+      {/* SECCIÓN CENTRAL */}
       <div 
         className={`editor-canvas-wrapper ${mobileTab === 'canvas' ? '' : 'mobile-hide'}`}
         style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', position: 'relative' }}
       >
-        {/* BARRA DE HERRAMIENTAS SUPERIOR FIJA */}
-        <div 
-          style={{ 
-            height: '50px', 
-            background: '#ffffff', 
-            borderBottom: '1px solid var(--border-color)', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            padding: '0 20px',
-            zIndex: 20,
-            flexShrink: 0
-          }}
-        >
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <button className="editor-toolbar-btn" onClick={undo} disabled={historyIndex <= 0} title="Undo" style={{ opacity: historyIndex <= 0 ? 0.3 : 1 }}><Undo size={16} /></button>
-            <button className="editor-toolbar-btn" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo" style={{ opacity: historyIndex >= history.length - 1 ? 0.3 : 1 }}><Redo size={16} /></button>
-            
-            <div style={{ width: '1px', background: 'var(--border-color)', margin: '0 4px', height: '16px' }}></div>
-
-            <button className="editor-toolbar-btn" onClick={duplicateSelectedElement} disabled={!selectedElementId} title="Duplicate"><Copy size={16} /></button>
-            <button className="editor-toolbar-btn" onClick={() => moveLayer('up')} disabled={!selectedElementId} title="Bring to Front"><MoveUp size={16} /></button>
-            <button className="editor-toolbar-btn" onClick={() => moveLayer('down')} disabled={!selectedElementId} title="Send to Back"><MoveDown size={16} /></button>
-            
-            <div style={{ width: '1px', background: 'var(--border-color)', margin: '0 4px', height: '16px' }}></div>
-
-            <button className="editor-toolbar-btn danger" onClick={deleteSelectedElement} disabled={!selectedElementId} title="Delete"><Trash2 size={16} /></button>
-          </div>
-        </div>
-
         {/* LIENZO DE DISEÑO CENTRAL SCROLLABLE */}
         <main className="editor-canvas-area" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
-          {/* FLOATING SAFETY & BLEED BADGES IN WORKSPACE */}
-          <div className="canvas-badges-wrapper">
-            <div 
-              className="canvas-badge canvas-badge-safety" 
-              style={{ cursor: 'pointer', opacity: showSafeZone ? 1 : 0.5, transition: 'opacity 0.2s' }}
-              onClick={() => setShowSafeZone(!showSafeZone)}
-              title="Toggle Safety Area guide lines"
-            >
-              <span className="canvas-badge-dot"></span>
-              <span>Safety Area</span>
-            </div>
-            <div 
-              className="canvas-badge canvas-badge-bleed" 
-              style={{ cursor: 'pointer', opacity: showBleed ? 1 : 0.5, transition: 'opacity 0.2s' }}
-              onClick={() => setShowBleed(!showBleed)}
-              title="Toggle Bleed guide lines"
-            >
-              <span className="canvas-badge-dot"></span>
-              <span>Bleed</span>
-            </div>
-          </div>
-
           {/* LIENZO REAL (CONTAINER CON REGLAS) */}
         <div 
           className="editor-canvas-container"
@@ -2530,8 +2938,9 @@ function EditorContent() {
                       color: el.color || '#000000',
                       wordBreak: 'break-word',
                       outline: 'none',
-                      textAlign: 'left',
-                      fontWeight: el.fontFamily === 'Outfit' ? 700 : 400,
+                      textAlign: el.textAlign || 'left',
+                      fontWeight: el.fontWeight === 'bold' ? 700 : (el.fontFamily === 'Outfit' ? 700 : 400),
+                      fontStyle: el.fontStyle || 'normal',
                     }}
                   >
                     {el.text}
@@ -2621,8 +3030,30 @@ function EditorContent() {
         </div>
       </main>
 
-      {/* BOTTOM FLOATING ZOOM CAPSULE */}
-      <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
+      {/* BOTTOM LEFT FLOATING STATUS GUIDES (PILL BADGES) */}
+      <div style={{ position: 'absolute', bottom: '20px', left: '20px', display: 'flex', gap: '8px', zIndex: 40 }}>
+        <div 
+          className="canvas-badge" 
+          style={{ cursor: 'pointer', opacity: showSafeZone ? 1 : 0.5, transition: 'opacity 0.2s', borderColor: 'rgba(22, 163, 74, 0.2)', color: '#16a34a' }}
+          onClick={() => setShowSafeZone(!showSafeZone)}
+          title="Toggle Safety Area guide lines"
+        >
+          <span className="canvas-badge-dot" style={{ background: '#16a34a', border: 'none' }}></span>
+          <span>Safe Zone</span>
+        </div>
+        <div 
+          className="canvas-badge" 
+          style={{ cursor: 'pointer', opacity: showBleed ? 1 : 0.5, transition: 'opacity 0.2s', borderColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444' }}
+          onClick={() => setShowBleed(!showBleed)}
+          title="Toggle Bleed guide lines"
+        >
+          <span className="canvas-badge-dot" style={{ background: '#ef4444', border: 'none' }}></span>
+          <span>Cut Line</span>
+        </div>
+      </div>
+
+      {/* BOTTOM RIGHT FLOATING ZOOM CAPSULE */}
+      <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 40 }}>
         <div className="zoom-capsule">
           <button 
             type="button"
@@ -2790,480 +3221,6 @@ function EditorContent() {
       )}
       </div>
 
-      {/* PANEL DE PROPIEDADES & COMPRA (DERECHO) */}
-      <aside className={`editor-properties-panel ${mobileTab === 'specs' ? '' : 'mobile-hide'}`}>
-        <h3 style={{ fontSize: '18px', fontFamily: 'var(--font-title)', marginBottom: '4px' }}>Configure Print Specifications</h3>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>{product.name}</p>
-
-        {/* NOMBRE DEL DISEÑO */}
-        <div className="form-group">
-          <label className="form-label">Design Reference Name</label>
-          <input 
-            type="text" 
-            className="input-field" 
-            value={canvasName} 
-            onChange={(e) => setCanvasName(e.target.value)} 
-            placeholder="e.g. My Acme Corporate Card"
-          />
-        </div>
-
-        {/* HERRAMIENTAS DE EDICIÓN DEL ELEMENTO SELECCIONADO */}
-        {selectedEl && (
-          <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '16px', background: 'var(--bg-primary)', marginBottom: '24px' }}>
-            <h4 style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--accent-primary)', letterSpacing: '0.05em', marginBottom: '12px' }}>Adjust Layer Properties</h4>
-            
-            {selectedElementIds.length > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: 'var(--radius-md)', marginBottom: '14px', color: '#0369a1', fontSize: '12px', fontWeight: '600' }}>
-                <Layers size={14} />
-                <span>Bulk Selection ({selectedElementIds.length} objects)</span>
-              </div>
-            )}
-            
-            {/* Si es Texto: Ajustes de Fuente, Tamaño, Color */}
-            {selectedEl.type === 'text' && (
-              <>
-                <div className="form-group" style={{ marginBottom: '12px' }}>
-                  <label className="form-label" style={{ fontSize: '11px' }}>Typography Font</label>
-                  <select 
-                    className="input-field"
-                    style={{ padding: '8px' }}
-                    value={selectedEl.fontFamily || 'Inter'}
-                    onChange={(e) => updateSelectedElement({ fontFamily: e.target.value })}
-                  >
-                    <option value="Inter">Inter (Clean Sans)</option>
-                    <option value="Outfit">Outfit (Bold Tech)</option>
-                    <option value="Courier New">Courier (Monospace)</option>
-                    <option value="Georgia">Georgia (Elegant Serif)</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '12px' }}>
-                  <label className="form-label" style={{ fontSize: '11px' }}>Size: {selectedEl.fontSize}px</label>
-                  <input 
-                    type="range" 
-                    min="8" 
-                    max="100" 
-                    className="input-field" 
-                    style={{ padding: '0', height: '4px' }}
-                    value={selectedEl.fontSize || 16}
-                    onChange={(e) => updateSelectedElement({ fontSize: parseInt(e.target.value) })}
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Selector de Color (Textos o Formas) */}
-            {(selectedEl.type === 'text' || selectedEl.type === 'shape') && (
-              <div className="form-group" style={{ marginBottom: '0' }}>
-                <label className="form-label" style={{ fontSize: '11px' }}>Element Color</label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input 
-                    type="color" 
-                    style={{ border: 'none', background: 'none', width: '32px', height: '32px', cursor: 'pointer' }}
-                    value={selectedEl.color || '#000000'}
-                    onChange={(e) => updateSelectedElement({ color: e.target.value })}
-                  />
-                  <input 
-                    type="text" 
-                    className="input-field" 
-                    style={{ padding: '6px', fontSize: '12px' }}
-                    value={selectedEl.color || '#000000'}
-                    onChange={(e) => updateSelectedElement({ color: e.target.value })}
-                  />
-                </div>
-              </div>
-            )}
-            
-            {selectedEl.type === 'image' && (
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Use the circular handles on the canvas boundaries to drag, scale, or position your uploaded logo.</p>
-            )}
-          </div>
-        )}
-
-        {/* ESPECIFICACIONES FÍSICAS DE VENTA */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-          <h4 style={{ fontSize: '14px', fontFamily: 'var(--font-title)' }}>Physical Specifications</h4>
-          
-          {Object.entries(
-            product.specs.reduce((acc: any, spec: any) => {
-              if (!acc[spec.group]) acc[spec.group] = [];
-              acc[spec.group].push(spec);
-              return acc;
-            }, {})
-          ).map(([group, specsList]: [string, any]) => {
-            const selectedValue = selectedSpecs[group] || '';
-            const isNeutral = !selectedValue || 
-                              selectedValue.toLowerCase() === 'none' || 
-                              selectedValue.toLowerCase().includes('no special') ||
-                              selectedValue.toLowerCase() === 'basic' ||
-                              selectedValue.toLowerCase() === 'standard' ||
-                              selectedValue.toLowerCase().includes('no back');
-                              
-            const borderColor = isNeutral ? 'var(--border-color)' : '#8cc63f';
-            const labelColor = isNeutral ? 'var(--text-muted)' : '#5b9317';
-
-            const isOrientation = group.toLowerCase() === 'orientation';
-            const isPaper = group.toLowerCase() === 'paper' || group.toLowerCase() === 'paper stock';
-            
-            return (
-              <div key={group} style={{ marginBottom: '12px' }}>
-                {/* Paper Thickness Link above Paper field */}
-                {isPaper && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                    <a 
-                      href="#paper-thickness" 
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        alert("Paper Thickness Guide:\n\n14 pt. Gloss is a thick, industry-standard cardstock with a glossy finish that makes colors vibrant.\n\n16 pt. Premium Matte is an extra-heavy premium cardstock with a soft, non-reflective matte finish for a luxury tactile experience."); 
-                      }} 
-                      style={{ 
-                        fontSize: '11px', 
-                        color: '#0066cc', 
-                        textDecoration: 'none', 
-                        cursor: 'pointer', 
-                        fontFamily: 'var(--font-body)',
-                        fontWeight: '600'
-                      }}
-                    >
-                      Paper Thickness
-                    </a>
-                  </div>
-                )}
-
-                {isOrientation ? (
-                  /* CUSTOM ORIENTATION SPLIT SELECTOR */
-                  <div 
-                    style={{ 
-                      position: 'relative',
-                      border: `1.5px solid #8cc63f`, // Always green
-                      borderRadius: '6px',
-                      background: 'var(--bg-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      height: '46px',
-                      boxShadow: 'var(--shadow-sm)',
-                      width: '100%'
-                    }}
-                  >
-                    {/* Floating-cut Label */}
-                    <span style={{
-                      position: 'absolute',
-                      top: '-9px',
-                      left: '10px',
-                      background: 'var(--bg-secondary)',
-                      padding: '0 4px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      color: '#5b9317',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      zIndex: 2,
-                      fontFamily: 'var(--font-title)'
-                    }}>
-                      {group}
-                    </span>
-
-                    {/* Split Buttons */}
-                    {specsList.map((spec: any, idx: number) => {
-                      const isSelected = selectedValue === spec.value;
-                      const isHorizontal = spec.value.toLowerCase() === 'horizontal';
-                      
-                      return (
-                        <React.Fragment key={spec.id}>
-                          {idx > 0 && (
-                            <div style={{ width: '1.5px', height: '100%', background: 'var(--border-color)' }}></div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedSpecs({ ...selectedSpecs, [group]: spec.value })}
-                            style={{
-                              flex: 1,
-                              height: '100%',
-                              background: 'transparent',
-                              border: 'none',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                              cursor: 'pointer',
-                              fontSize: '13px',
-                              fontWeight: isSelected ? '700' : '500',
-                              color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                              outline: 'none',
-                              transition: 'all 0.2s ease',
-                              zIndex: 1
-                            }}
-                          >
-                            {/* Card Shape Icon Indicator */}
-                            {isHorizontal ? (
-                              <div 
-                                style={{ 
-                                  width: '20px', 
-                                  height: '12px', 
-                                  borderRadius: '2px', 
-                                  backgroundColor: isSelected ? '#8cc63f' : '#d1d5db',
-                                  transition: 'background-color 0.2s ease'
-                                }} 
-                              />
-                            ) : (
-                              <div 
-                                style={{ 
-                                  width: '12px', 
-                                  height: '20px', 
-                                  borderRadius: '2px', 
-                                  backgroundColor: isSelected ? '#8cc63f' : '#d1d5db',
-                                  transition: 'background-color 0.2s ease'
-                                }} 
-                              />
-                            )}
-                            <span>{spec.value}</span>
-                          </button>
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  /* STANDARD SELECTOR CONTAINER (CUSTOM SELECT DROPDOWN) */
-                  <div 
-                    style={{ 
-                      position: 'relative',
-                      border: `1.5px solid ${borderColor}`,
-                      borderRadius: '6px',
-                      padding: '0 10px',
-                      background: 'var(--bg-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      height: '46px',
-                      cursor: 'pointer',
-                      transition: 'border-color 0.2s ease',
-                      boxShadow: 'var(--shadow-sm)',
-                      zIndex: openDropdown === group ? 25 : 1
-                    }}
-                    onClick={() => setOpenDropdown(openDropdown === group ? null : group)}
-                  >
-                    {/* Floating-cut Label */}
-                    <span style={{
-                      position: 'absolute',
-                      top: '-9px',
-                      left: '10px',
-                      background: 'var(--bg-secondary)',
-                      padding: '0 4px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      color: labelColor,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      transition: 'color 0.2s ease',
-                      zIndex: 2,
-                      fontFamily: 'var(--font-title)'
-                    }}>
-                      {group}
-                    </span>
-
-                    {/* Custom Select Value text display */}
-                    <div style={{ 
-                      width: '100%',
-                      fontSize: '13px', 
-                      fontWeight: '600', 
-                      color: 'var(--text-primary)',
-                      paddingRight: '70px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      height: '100%',
-                      userSelect: 'none'
-                    }}>
-                      {selectedValue}
-                    </div>
-
-                    {/* Custom Options List Dropdown */}
-                    {openDropdown === group && (
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          top: 'calc(100% + 4px)',
-                          left: '-1.5px',
-                          right: '-1.5px',
-                          background: '#ffffff', // Pure white background
-                          border: `1.5px solid ${borderColor}`,
-                          borderRadius: '6px',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                          zIndex: 30,
-                          maxHeight: '200px',
-                          overflowY: 'auto',
-                          padding: '4px 0'
-                        }}
-                        onClick={(e) => e.stopPropagation()} // Prevent close on list click
-                      >
-                        {specsList.map((spec: any) => {
-                          const isSelected = selectedValue === spec.value;
-                          const actualMarkup = spec.markupType === 'PERCENTAGE'
-                            ? (product.basePrice * spec.priceMarkup) / 100
-                            : spec.priceMarkup;
-                          const markupText = spec.priceMarkup > 0 
-                            ? `(+$${actualMarkup.toFixed(2)})` 
-                            : '';
-                          return (
-                            <div
-                              key={spec.id}
-                              onClick={() => {
-                                setSelectedSpecs({ ...selectedSpecs, [group]: spec.value });
-                                setOpenDropdown(null);
-                              }}
-                              style={{
-                                padding: '10px 14px', // Comfortable padding as requested!
-                                fontSize: '13px',
-                                fontWeight: isSelected ? '700' : '500',
-                                color: isSelected ? '#5b9317' : 'var(--text-primary)',
-                                background: isSelected ? '#f5f9eb' : 'transparent', // very light green if selected
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                transition: 'all 0.15s ease'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!isSelected) {
-                                  e.currentTarget.style.background = '#f9fafb'; // Very light gray hover
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!isSelected) {
-                                  e.currentTarget.style.background = 'transparent';
-                                }
-                              }}
-                            >
-                              <span>{spec.value}</span>
-                              {spec.priceMarkup > 0 && (
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                  {markupText}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Icons Indicator overlay */}
-                    <div style={{
-                      position: 'absolute',
-                      right: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      pointerEvents: 'none',
-                      zIndex: 2
-                    }}>
-                      {/* Help Tooltip */}
-                      {(group.toLowerCase().includes('coating') || group.toLowerCase().includes('finish') || group.toLowerCase().includes('paper')) && (
-                        <div 
-                          title={
-                            group.toLowerCase().includes('coating') 
-                            ? "Coating protects your card and enhances colors. High Gloss UV is shiny, Matte is elegant and non-reflective."
-                            : "Paper selection affects weight and texture. Gloss is shiny and vibrant, Matte is soft and elegant."
-                          }
-                          style={{
-                            width: '16px',
-                            height: '16px',
-                            borderRadius: '50%',
-                            background: '#8cc63f',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ffffff',
-                            cursor: 'help',
-                            pointerEvents: 'auto'
-                          }}
-                        >
-                          <span style={{ fontSize: '9px', fontWeight: 'bold', transform: 'translateY(-0.5px)' }}>?</span>
-                        </div>
-                      )}
-                      
-                      {/* Valid Selection Checkmark */}
-                      {!isNeutral && (
-                        <div style={{
-                          width: '16px',
-                          height: '16px',
-                          borderRadius: '50%',
-                          background: '#8cc63f',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#ffffff'
-                        }}>
-                          <span style={{ fontSize: '9px', fontWeight: 'bold', transform: 'translateY(-0.5px)' }}>✔</span>
-                        </div>
-                      )}
-                      
-                      {/* Dropdown Chevron */}
-                      <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* CANTIDAD */}
-          <div className="form-group" style={{ marginBottom: '24px' }}>
-            <label className="form-label" style={{ fontSize: '12px' }}>Order Quantity (Packs)</label>
-            <div style={{ display: 'flex', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
-              <button className="btn" style={{ padding: '8px 12px', border: 'none', background: 'var(--bg-primary)' }} onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus size={14} /></button>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold' }}>{quantity}</div>
-              <button className="btn" style={{ padding: '8px 12px', border: 'none', background: 'var(--bg-primary)' }} onClick={() => setQuantity(q => q + 1)}><Plus size={14} /></button>
-            </div>
-          </div>
-        </div>
-
-        {/* PRECIO FINAL Y AGREGAR AL CARRITO */}
-        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: 'auto' }}>
-          {Object.entries(selectedSpecs).some(([k, v]: [string, any]) => k.toLowerCase().includes('stand') && (v.toLowerCase() === 'yes' || v.toLowerCase() === 'si' || v.toLowerCase() === 'sí')) && (() => {
-            let specQty = 1;
-            let hasQtySpec = false;
-            Object.entries(selectedSpecs).forEach(([k, v]: [string, any]) => {
-              if (k.toLowerCase().includes('quantity') || k.toLowerCase().includes('cantidad') || k.toLowerCase() === 'qty') {
-                const parsed = parseInt(v.replace(/[^0-9]/g, ''), 10);
-                if (!isNaN(parsed) && parsed > 0) {
-                  specQty = parsed;
-                  hasQtySpec = true;
-                }
-              }
-            });
-            const totalStands = hasQtySpec ? (specQty * quantity) : quantity;
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(140, 198, 63, 0.1)', border: '1.5px solid rgba(140, 198, 63, 0.3)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', marginBottom: '14px', color: '#5b9317', fontWeight: 'bold' }}>
-                <span>✔ Includes {totalStands} H-Stands (1 per Yard Sign)</span>
-              </div>
-            );
-          })()}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Price Per Unit:</span>
-            <span style={{ fontSize: '16px', fontWeight: '600' }}>${totalPrice.toFixed(2)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Estimated Subtotal:</span>
-            <span style={{ fontSize: '24px', fontWeight: '800', color: 'var(--accent-primary)', fontFamily: 'var(--font-title)' }}>
-              ${(totalPrice * quantity).toFixed(2)}
-            </span>
-          </div>
-
-          <button 
-            className="btn btn-primary" 
-            style={{ width: '100%', padding: '14px' }} 
-            onClick={saveDesignAndCheckout}
-            disabled={saving}
-          >
-            {saving ? (
-              'Saving Design Blueprint...'
-            ) : (
-              <>
-                <ShoppingCart size={16} /> Add Custom Product to Cart
-              </>
-            )}
-          </button>
-        </div>
-      </aside>
-
       {showSaveTemplateModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: 'white', padding: '24px', borderRadius: '8px', width: '90%', maxWidth: '400px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
@@ -3300,6 +3257,7 @@ function EditorContent() {
         </div>
       )}
     </div>
+  </div>
   );
 }
 
