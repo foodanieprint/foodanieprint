@@ -4,7 +4,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Flame, Award, ArrowLeft, Paintbrush, Upload, CheckCircle2, ShieldCheck, HelpCircle, ChevronDown
+  Flame, Award, ArrowLeft, Paintbrush, Upload, CheckCircle2, ShieldCheck, HelpCircle, ChevronDown,
+  ShoppingCart
 } from 'lucide-react';
 
 function ProductDetailContent() {
@@ -99,7 +100,32 @@ function ProductDetailContent() {
         price += actualMarkup;
       }
     });
+    setUnitPrice(price);
   }, [selectedSpecs, product]);
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    const cartItem = {
+      id: `cart-item-${Date.now()}`,
+      productId: product.id,
+      productSlug: product.slug,
+      productName: product.name,
+      thumbnail: activeImage || product.thumbnail,
+      customDesignId: null,
+      designName: `${product.name} (Standard Option)`,
+      quantity: 1,
+      selectedSpecs: JSON.stringify(selectedSpecs),
+      unitPrice: unitPrice,
+    };
+
+    const existingCart = JSON.parse(localStorage.getItem('printear_cart') || '[]');
+    existingCart.push(cartItem);
+    localStorage.setItem('printear_cart', JSON.stringify(existingCart));
+
+    router.push('/cart');
+  };
+
 
 
   if (loading) {
@@ -774,9 +800,18 @@ function ProductDetailContent() {
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  className="btn btn-primary"
+                  style={{ width: '100%', gap: '8px', padding: '14px' }}
+                >
+                  <ShoppingCart size={16} /> Add to Cart
+                </button>
+
                 <Link 
                   href={`/editor?product=${product.slug}&${new URLSearchParams(selectedSpecs).toString()}`} 
-                  className="btn btn-primary" 
+                  className="btn btn-secondary" 
                   style={{ width: '100%', gap: '8px', padding: '14px' }}
                 >
                   <Paintbrush size={16} /> Design Online
