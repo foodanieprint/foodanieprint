@@ -1131,6 +1131,7 @@ function EditorContent() {
   const sizeKey = Object.keys(selectedSpecs).find(k => k.toLowerCase() === 'size' || k.toLowerCase() === 'tamaño') || 'Size';
   const sizeVal = selectedSpecs[sizeKey] || '';
   const selectedSpec = product?.specs?.find((s: any) => 
+    s?.group && s?.value &&
     (s.group.toLowerCase() === 'size' || s.group.toLowerCase() === 'tamaño') && 
     s.value.toLowerCase().trim() === sizeVal.toLowerCase().trim()
   );
@@ -2094,16 +2095,18 @@ function EditorContent() {
                                 >
                                   {specsList.map((spec: any) => {
                                     const isSelected = selectedValue === spec.value;
+                                    const markupVal = Number(spec.priceMarkup || 0);
                                     const actualMarkup = spec.markupType === 'PERCENTAGE'
-                                      ? (product.basePrice * spec.priceMarkup) / 100
-                                      : spec.priceMarkup;
-                                    const markupText = spec.priceMarkup > 0 
+                                      ? (product.basePrice * markupVal) / 100
+                                      : markupVal;
+                                    const markupText = markupVal > 0 
                                       ? `(+$${actualMarkup.toFixed(2)})` 
                                       : '';
                                     return (
                                       <div
                                         key={spec.id}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           setSelectedSpecs({ ...selectedSpecs, [group]: spec.value });
                                           setOpenDropdown(null);
                                         }}

@@ -12,6 +12,7 @@ export function getCanvasDimensions(product: any, selectedSpecs: Record<string, 
     // Case-insensitive comparison for group and value
     const selectedSpec = product.specs?.find(
       (s: any) => 
+        s?.group && s?.value &&
         (s.group.toLowerCase() === 'size' || s.group.toLowerCase() === 'tamaño') && 
         s.value.toLowerCase().trim() === sizeVal.toLowerCase().trim()
     );
