@@ -434,14 +434,14 @@ function EditorContent() {
     const parentHeight = parentEl.clientHeight;
     
     if (parentWidth > 0 && parentHeight > 0) {
-      const targetWidth = parentWidth - 40;
-      const targetHeight = parentHeight - 40; // leaves a clean margin around viewport
+      const targetWidth = parentWidth - 120;
+      const targetHeight = parentHeight - 120; // leaves a clean margin around viewport
       
       const scaleW = targetWidth / canvasWidth;
       const scaleH = targetHeight / canvasHeight;
       
       const fitScale = Math.min(scaleW, scaleH);
-      setScale(Math.max(0.15, Math.min(1.2, parseFloat(fitScale.toFixed(2)))));
+      setScale(Math.max(0.15, Math.min(0.7, parseFloat(fitScale.toFixed(2)))));
     }
   };
 
