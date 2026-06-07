@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getFirebaseStorage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 export async function POST(req: Request) {
   try {
@@ -11,9 +13,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Basic image type validation
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Uploaded file must be an image' }, { status: 400 });
+    // Validate file type: images or pdf
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'Uploaded file must be an image (JPG, PNG) or PDF' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
@@ -23,28 +26,33 @@ export async function POST(req: Request) {
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueFilename = `${Date.now()}-${safeName}`;
 
-    // Get Firebase Storage dynamically
-    let storage;
+    let downloadUrl = '';
+    
+    // Try uploading to Firebase, fallback to local file system if it fails or is unconfigured
     try {
-      storage = await getFirebaseStorage();
+      const storage = await getFirebaseStorage();
+      const storageRef = ref(storage, `uploads/${uniqueFilename}`);
+      
+      await uploadBytes(storageRef, buffer, {
+        contentType: file.type,
+      });
+
+      downloadUrl = await getDownloadURL(storageRef);
     } catch (configError: any) {
-      return NextResponse.json({ error: configError.message }, { status: 400 });
+      console.warn('Firebase storage failed or not configured, falling back to local storage:', configError.message);
+      
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      await fs.mkdir(uploadDir, { recursive: true });
+      const filePath = path.join(uploadDir, uniqueFilename);
+      await fs.writeFile(filePath, buffer);
+      
+      downloadUrl = `/uploads/${uniqueFilename}`;
     }
-
-    // Create Firebase Storage reference
-    const storageRef = ref(storage, `uploads/${uniqueFilename}`);
-
-    // Upload buffer to Firebase Storage
-    await uploadBytes(storageRef, buffer, {
-      contentType: file.type,
-    });
-
-    // Get the public download URL
-    const downloadUrl = await getDownloadURL(storageRef);
 
     return NextResponse.json({ url: downloadUrl });
   } catch (error) {
-    console.error('Error during file upload to Firebase Storage:', error);
+    console.error('Error during file upload:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }
+

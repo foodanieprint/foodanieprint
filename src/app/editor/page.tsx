@@ -47,6 +47,104 @@ function EditorContent() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
+  const mode = searchParams.get('mode');
+  const isUploadMode = mode === 'upload';
+
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState('');
+  const [uploadedFileName, setUploadedFileName] = useState('');
+
+  const handleUploadFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadFile(file);
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Upload failed');
+      }
+
+      const data = await res.json();
+      setUploadedFileUrl(data.url);
+      setUploadedFileName(file.name);
+    } catch (err: any) {
+      alert(err.message || 'Error uploading file.');
+      setUploadFile(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadAddToCart = async () => {
+    if (!product) return;
+    if (!uploadedFileUrl) {
+      alert('Please upload a print-ready file first.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const canvasBlobData = JSON.stringify({
+        isUploadMode: true,
+        fileUrl: uploadedFileUrl,
+        fileName: uploadedFileName,
+      });
+
+      const response = await fetch('/api/designs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          name: `Upload: ${uploadedFileName}`,
+          canvasData: canvasBlobData,
+          previewUrl: uploadedFileUrl.toLowerCase().endsWith('.pdf') ? product.thumbnail : uploadedFileUrl,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Error saving custom design layout');
+      const savedDesign = await response.json();
+
+      const cartItem = {
+        id: `cart-item-${Date.now()}`,
+        productId: product.id,
+        productSlug: product.slug,
+        productName: product.name,
+        thumbnail: uploadedFileUrl.toLowerCase().endsWith('.pdf') ? product.thumbnail : uploadedFileUrl,
+        customDesignId: savedDesign.id,
+        designName: `Upload: ${uploadedFileName}`,
+        quantity: quantity,
+        selectedSpecs: JSON.stringify(selectedSpecs),
+        unitPrice: totalPrice,
+        printReadyFileUrl: uploadedFileUrl,
+        printReadyFileName: uploadedFileName,
+      };
+
+      const existingCart = JSON.parse(localStorage.getItem('printear_cart') || '[]');
+      existingCart.push(cartItem);
+      localStorage.setItem('printear_cart', JSON.stringify(existingCart));
+
+      router.push('/cart');
+    } catch (err: any) {
+      alert(err.message || 'An error occurred while adding file to cart.');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
   // Canvas Editor States
   const [canvasElements, setCanvasElements] = useState<CanvasElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
@@ -1088,6 +1186,376 @@ function EditorContent() {
       type = 'medium';
     }
     vTicks.push({ y, type, label });
+  }
+
+  if (isUploadMode) {
+    return (
+      <div className="editor-container" style={{ position: 'relative' }}>
+        {openDropdown && (
+          <div 
+            style={{ position: 'fixed', inset: 0, zIndex: 15 }} 
+            onClick={() => setOpenDropdown(null)} 
+          />
+        )}
+
+        {/* MOBILE EDITOR TAB BAR */}
+        <div className="editor-mobile-tab-bar desktop-hide">
+          <button 
+            className={`editor-mobile-tab ${mobileTab === 'canvas' ? 'active' : ''}`}
+            onClick={() => setMobileTab('canvas')}
+          >
+            Upload File
+          </button>
+          <button 
+            className={`editor-mobile-tab ${mobileTab === 'specs' ? 'active' : ''}`}
+            onClick={() => setMobileTab('specs')}
+          >
+            Specs
+          </button>
+        </div>
+
+        {/* LEFT PANEL: UPLOAD ZONE */}
+        <div 
+          className={`editor-canvas-wrapper ${mobileTab === 'canvas' ? '' : 'mobile-hide'}`}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', padding: '40px', background: 'radial-gradient(#d2d6dc 1px, transparent 1px) 0 0/16px 16px', backgroundColor: '#e8ebf0', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div className="glass-card" style={{ width: '100%', maxWidth: '600px', padding: '40px', background: '#ffffff', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', borderRadius: '16px' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(0, 111, 66, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
+              <Upload size={32} />
+            </div>
+
+            <div>
+              <h2 style={{ fontSize: '22px', color: 'var(--text-primary)', marginBottom: '8px', fontWeight: '800' }}>Upload Print-Ready File</h2>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: '0 auto', maxWidth: '400px' }}>
+                Upload your high-resolution layout file. We support **PDF, JPG, and PNG** files in their original quality.
+              </p>
+            </div>
+
+            {/* DROPZONE AREA */}
+            <div 
+              style={{
+                width: '100%',
+                border: '2px dashed var(--border-color)',
+                borderRadius: '8px',
+                padding: '30px 20px',
+                background: '#f8fafc',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                position: 'relative'
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files?.[0];
+                if (file) {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  const dataTransfer = new DataTransfer();
+                  dataTransfer.items.add(file);
+                  input.files = dataTransfer.files;
+                  const event = { target: input } as unknown as React.ChangeEvent<HTMLInputElement>;
+                  handleUploadFileChange(event);
+                }
+              }}
+            >
+              <input 
+                type="file" 
+                accept="image/*,application/pdf" 
+                onChange={handleUploadFileChange} 
+                style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
+              />
+              {uploading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>Uploading file in original quality...</span>
+                </div>
+              ) : uploadedFileUrl ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                  <div style={{ fontSize: '32px' }}>{uploadedFileName.toLowerCase().endsWith('.pdf') ? '📄' : '🖼️'}</div>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0, wordBreak: 'break-all' }}>{uploadedFileName}</p>
+                    <span style={{ fontSize: '12px', color: 'var(--success)', fontWeight: '600' }}>✔ Uploaded Successfully</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>Click to browse files</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>or drag and drop layout files here</span>
+                </div>
+              )}
+            </div>
+
+            {uploadedFileUrl && !uploadedFileName.toLowerCase().endsWith('.pdf') && (
+              <div style={{ width: '100%', height: '180px', borderRadius: '8px', border: '1px solid var(--border-color)', overflow: 'hidden', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={uploadedFileUrl} alt="Uploaded Print Ready Layout" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '16px', width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: '10px' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                style={{ flex: 1, padding: '12px' }} 
+                onClick={() => router.push(`/products/${productSlug}?${new URLSearchParams(selectedSpecs).toString()}`)}
+              >
+                <ArrowLeft size={16} /> Back to Product
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT PANEL: CONFIGURATION SIDEBAR */}
+        <aside className={`editor-properties-panel ${mobileTab === 'specs' ? '' : 'mobile-hide'}`} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <h3 style={{ fontSize: '18px', fontFamily: 'var(--font-title)', marginBottom: '4px' }}>Confirm Print Specifications</h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>{product.name}</p>
+
+          <div className="form-group">
+            <label className="form-label">Reference Name</label>
+            <input 
+              type="text" 
+              className="input-field" 
+              value={canvasName} 
+              onChange={(e) => setCanvasName(e.target.value)} 
+              placeholder="e.g. My Print Ready Design"
+            />
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginBottom: '20px' }}>
+            <h4 style={{ fontSize: '14px', fontFamily: 'var(--font-title)' }}>Physical Specifications</h4>
+            
+            {Object.entries(
+              product.specs.reduce((acc: any, spec: any) => {
+                if (!acc[spec.group]) acc[spec.group] = [];
+                acc[spec.group].push(spec);
+                return acc;
+              }, {})
+            ).map(([group, specsList]: [string, any]) => {
+              const selectedValue = selectedSpecs[group] || '';
+              const isNeutral = !selectedValue || 
+                                selectedValue.toLowerCase() === 'none' || 
+                                selectedValue.toLowerCase().includes('no special') ||
+                                selectedValue.toLowerCase() === 'basic' ||
+                                selectedValue.toLowerCase() === 'standard' ||
+                                selectedValue.toLowerCase().includes('no back');
+                                
+              const borderColor = isNeutral ? 'var(--border-color)' : '#8cc63f';
+              const labelColor = isNeutral ? 'var(--text-muted)' : '#5b9317';
+
+              const isOrientation = group.toLowerCase() === 'orientation';
+              
+              return (
+                <div key={group} style={{ marginBottom: '12px' }}>
+                  {isOrientation ? (
+                    <div 
+                      style={{ 
+                        position: 'relative',
+                        border: `1.5px solid #8cc63f`,
+                        borderRadius: '6px',
+                        background: 'var(--bg-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: '46px',
+                        boxShadow: 'var(--shadow-sm)',
+                        width: '100%'
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '-9px',
+                        left: '10px',
+                        background: 'var(--bg-secondary)',
+                        padding: '0 4px',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                        color: '#5b9317',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        zIndex: 2,
+                        fontFamily: 'var(--font-title)'
+                      }}>
+                        {group}
+                      </span>
+                      {specsList.map((spec: any, idx: number) => {
+                        const isSelected = selectedValue === spec.value;
+                        const isHorizontal = spec.value.toLowerCase() === 'horizontal';
+                        return (
+                          <React.Fragment key={spec.id}>
+                            {idx > 0 && (
+                              <div style={{ width: '1.5px', height: '100%', background: 'var(--border-color)' }}></div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSpecs({ ...selectedSpecs, [group]: spec.value })}
+                              style={{
+                                flex: 1,
+                                height: '100%',
+                                background: 'transparent',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: isSelected ? '700' : '500',
+                                color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                outline: 'none',
+                                transition: 'all 0.2s ease',
+                                zIndex: 1
+                              }}
+                            >
+                              {isHorizontal ? (
+                                <div style={{ width: '20px', height: '12px', borderRadius: '2px', backgroundColor: isSelected ? '#8cc63f' : '#d1d5db' }} />
+                              ) : (
+                                <div style={{ width: '12px', height: '20px', borderRadius: '2px', backgroundColor: isSelected ? '#8cc63f' : '#d1d5db' }} />
+                              )}
+                              <span>{spec.value}</span>
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div 
+                      style={{ 
+                        position: 'relative',
+                        border: `1.5px solid ${borderColor}`,
+                        borderRadius: '6px',
+                        padding: '0 10px',
+                        background: 'var(--bg-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: '46px',
+                        cursor: 'pointer',
+                        boxShadow: 'var(--shadow-sm)',
+                        zIndex: openDropdown === group ? 25 : 1
+                      }}
+                      onClick={() => setOpenDropdown(openDropdown === group ? null : group)}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: '-9px',
+                        left: '10px',
+                        background: 'var(--bg-secondary)',
+                        padding: '0 4px',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                        color: labelColor,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        zIndex: 2,
+                        fontFamily: 'var(--font-title)'
+                      }}>
+                        {group}
+                      </span>
+                      <div style={{ width: '100%', fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', paddingRight: '70px', display: 'flex', alignItems: 'center', height: '100%', userSelect: 'none' }}>
+                        {selectedValue}
+                      </div>
+
+                      {openDropdown === group && (
+                        <div 
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 4px)',
+                            left: '-1.5px',
+                            right: '-1.5px',
+                            background: '#ffffff',
+                            border: `1.5px solid ${borderColor}`,
+                            borderRadius: '6px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            zIndex: 30,
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            padding: '4px 0'
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {specsList.map((spec: any) => {
+                            const isSelected = selectedValue === spec.value;
+                            return (
+                              <div
+                                key={spec.id}
+                                onClick={() => {
+                                  setSelectedSpecs({ ...selectedSpecs, [group]: spec.value });
+                                  setOpenDropdown(null);
+                                }}
+                                style={{
+                                  padding: '10px 14px',
+                                  fontSize: '13px',
+                                  fontWeight: isSelected ? '700' : '500',
+                                  color: isSelected ? '#5b9317' : 'var(--text-primary)',
+                                  background: isSelected ? '#f5f9eb' : 'transparent',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <span>{spec.value}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      <div style={{ position: 'absolute', right: '10px', display: 'flex', alignItems: 'center', gap: '6px', pointerEvents: 'none' }}>
+                        {!isNeutral && (
+                          <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#8cc63f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 'bold' }}>✔</span>
+                          </div>
+                        )}
+                        <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="form-group" style={{ marginBottom: '0' }}>
+              <label className="form-label" style={{ fontSize: '12px' }}>Order Quantity (Packs)</label>
+              <div style={{ display: 'flex', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                <button className="btn" style={{ padding: '8px 12px', border: 'none', background: 'var(--bg-primary)' }} onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus size={14} /></button>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold' }}>{quantity}</div>
+                <button className="btn" style={{ padding: '8px 12px', border: 'none', background: 'var(--bg-primary)' }} onClick={() => setQuantity(q => q + 1)}><Plus size={14} /></button>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Price Per Unit:</span>
+              <span style={{ fontSize: '16px', fontWeight: '600' }}>${totalPrice.toFixed(2)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Estimated Subtotal:</span>
+              <span style={{ fontSize: '24px', fontWeight: '800', color: 'var(--accent-primary)', fontFamily: 'var(--font-title)' }}>
+                ${(totalPrice * quantity).toFixed(2)}
+              </span>
+            </div>
+
+            <button 
+              className="btn btn-primary" 
+              style={{ width: '100%', padding: '14px' }} 
+              onClick={handleUploadAddToCart}
+              disabled={saving || uploading || !uploadedFileUrl}
+            >
+              {saving ? (
+                'Saving File Reference...'
+              ) : uploading ? (
+                'File Uploading...'
+              ) : !uploadedFileUrl ? (
+                'Upload Print-Ready File First'
+              ) : (
+                <>
+                  <ShoppingCart size={16} /> Add Uploaded File to Cart
+                </>
+              )}
+            </button>
+          </div>
+        </aside>
+      </div>
+    );
   }
 
   return (

@@ -350,6 +350,30 @@ export default function DashboardPage() {
                           <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                             <span style={{ color: 'var(--text-primary)' }}>
                               {item.quantity}x {item.customDesign?.name || item.product.name}
+                              {item.customDesign?.canvasData && (() => {
+                                const canvas = typeof item.customDesign.canvasData === 'string'
+                                  ? JSON.parse(item.customDesign.canvasData)
+                                  : item.customDesign.canvasData;
+                                if (canvas && canvas.isUploadMode && canvas.fileUrl) {
+                                  return (
+                                    <a 
+                                      href={canvas.fileUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      style={{ 
+                                        marginLeft: '8px', 
+                                        color: 'var(--accent-primary)', 
+                                        fontSize: '11px', 
+                                        textDecoration: 'underline',
+                                        fontWeight: '600'
+                                      }}
+                                    >
+                                      [View Uploaded File]
+                                    </a>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </span>
                             <span style={{ color: 'var(--text-secondary)' }}>${(item.unitPrice * item.quantity).toFixed(2)}</span>
                           </div>

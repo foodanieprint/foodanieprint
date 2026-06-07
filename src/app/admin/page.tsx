@@ -836,6 +836,17 @@ export default function AdminPage() {
       ? JSON.parse(item.customDesign.canvasData) 
       : item.customDesign.canvasData;
 
+    if (parsed && parsed.isUploadMode && parsed.fileUrl) {
+      const link = document.createElement('a');
+      link.href = parsed.fileUrl;
+      link.target = '_blank';
+      link.download = parsed.fileName || 'uploaded_print_ready';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
     const specs = typeof item.selectedSpecs === 'string' 
       ? JSON.parse(item.selectedSpecs) 
       : item.selectedSpecs || {};
@@ -1137,38 +1148,57 @@ export default function AdminPage() {
                                       </div>
                                     </div>
 
-                                    {item.customDesign && (
-                                      <div style={{ display: 'flex', gap: '8px' }}>
-                                        <button 
-                                          className="btn btn-secondary btn-sm" 
-                                          style={{ fontSize: '11px', padding: '6px 10px' }}
-                                          onClick={() => setSelectedProductionItem(selectedProductionItem?.id === item.id ? null : item)}
-                                        >
-                                          <Palette size={12} /> {selectedProductionItem?.id === item.id ? 'Hide Visual Preflight' : 'Preflight Visual Inspector'}
-                                        </button>
-                                        <button 
-                                          className="btn btn-primary btn-sm" 
-                                          style={{ fontSize: '11px', padding: '6px 10px' }}
-                                          onClick={() => downloadProductionSVG(item)}
-                                        >
-                                          <Download size={12} /> Download Production SVG
-                                        </button>
-                                      </div>
-                                    )}
+                                    {item.customDesign && (() => {
+                                      const parsedCD = typeof item.customDesign.canvasData === 'string'
+                                        ? JSON.parse(item.customDesign.canvasData)
+                                        : item.customDesign.canvasData;
+                                      const isUpload = parsedCD && parsedCD.isUploadMode;
+                                      return (
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                          <button 
+                                            className="btn btn-secondary btn-sm" 
+                                            style={{ fontSize: '11px', padding: '6px 10px' }}
+                                            onClick={() => setSelectedProductionItem(selectedProductionItem?.id === item.id ? null : item)}
+                                          >
+                                            <Palette size={12} /> {selectedProductionItem?.id === item.id ? 'Hide Visual Preflight' : 'Preflight Visual Inspector'}
+                                          </button>
+                                          <button 
+                                            className="btn btn-primary btn-sm" 
+                                            style={{ fontSize: '11px', padding: '6px 10px' }}
+                                            onClick={() => downloadProductionSVG(item)}
+                                          >
+                                            <Download size={12} /> {isUpload ? 'Download Print-Ready File' : 'Download Production SVG'}
+                                          </button>
+                                        </div>
+                                      );
+                                    })()}
                                   </div>
                                 );
                               })}
-
                               {/* VISOR VECTORIAL SVG EN DIRECTO */}
                               {selectedProductionItem && selectedProductionItem.orderId === order.id && (
                                 <div className="glass-card" style={{ padding: '24px', background: 'var(--bg-secondary)', marginTop: '12px', border: '1px solid var(--accent-primary)' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <h4 style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '700' }}>ORIGINAL CUSTOM BLUEPRINT VECTOR (SVG) - Preflight Preview</h4>
-                                    <button className="btn btn-secondary btn-sm" style={{ fontSize: '10px' }} onClick={() => downloadProductionSVG(selectedProductionItem)}><Download size={10} /> Download Full Scale Blueprint</button>
+                                    {(() => {
+                                      const parsedCanvas = typeof selectedProductionItem.customDesign.canvasData === 'string' 
+                                        ? JSON.parse(selectedProductionItem.customDesign.canvasData) 
+                                        : selectedProductionItem.customDesign.canvasData;
+                                      const isUpload = parsedCanvas && parsedCanvas.isUploadMode;
+                                      return (
+                                        <>
+                                          <h4 style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '700' }}>
+                                            {isUpload ? 'PRINT-READY FILE PREVIEW' : 'ORIGINAL CUSTOM BLUEPRINT VECTOR (SVG) - Preflight Preview'}
+                                          </h4>
+                                          <button className="btn btn-secondary btn-sm" style={{ fontSize: '10px' }} onClick={() => downloadProductionSVG(selectedProductionItem)}>
+                                            <Download size={10} /> {isUpload ? 'Download Original File' : 'Download Full Scale Blueprint'}
+                                          </button>
+                                        </>
+                                      );
+                                    })()}
                                   </div>
 
                                   <div style={{ display: 'flex', justifyContent: 'center', padding: '20px', background: '#e5e7eb', borderRadius: 'var(--radius-sm)', overflow: 'auto' }}>
-                                    {/* RENDER DYNAMIC SVG PREVIEW */}
+                                    {/* RENDER DYNAMIC PREVIEW */}
                                     {(() => {
                                       const specs = typeof selectedProductionItem.selectedSpecs === 'string' 
                                         ? JSON.parse(selectedProductionItem.selectedSpecs) 
@@ -1180,6 +1210,24 @@ export default function AdminPage() {
                                       const parsedCanvas = typeof selectedProductionItem.customDesign.canvasData === 'string' 
                                         ? JSON.parse(selectedProductionItem.customDesign.canvasData) 
                                         : selectedProductionItem.customDesign.canvasData;
+
+                                      if (parsedCanvas && parsedCanvas.isUploadMode) {
+                                        const isPdf = parsedCanvas.fileUrl?.toLowerCase().endsWith('.pdf');
+                                        return (
+                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '20px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '100%', maxWidth: '500px' }}>
+                                            {isPdf ? (
+                                              <div style={{ fontSize: '48px', padding: '20px' }}>📄</div>
+                                            ) : (
+                                              <img src={parsedCanvas.fileUrl} alt="Uploaded Print Ready" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px' }} />
+                                            )}
+                                            <div style={{ textAlign: 'center' }}>
+                                              <p style={{ fontWeight: 'bold', fontSize: '14px', margin: '0 0 4px 0', color: 'var(--text-primary)', wordBreak: 'break-all' }}>{parsedCanvas.fileName || 'Uploaded Print-Ready File'}</p>
+                                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Format: {isPdf ? 'PDF Document' : 'Image File'}</span>
+                                            </div>
+                                            <a href={parsedCanvas.fileUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm" style={{ textTransform: 'none', padding: '6px 12px' }}>View File Original Quality</a>
+                                          </div>
+                                        );
+                                      }
                                       
                                       const elementsToRender = Array.isArray(parsedCanvas) 
                                         ? parsedCanvas 

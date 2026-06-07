@@ -93,7 +93,12 @@ export default function CartPage() {
                     {/* Descripción y Especificaciones */}
                     <div style={{ flex: 1, minWidth: '200px' }}>
                       <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>{item.designName}</h3>
-                      <p style={{ fontSize: '12px', color: 'var(--accent-primary)', marginBottom: '8px' }}>Product Base: {item.productName}</p>
+                      <p style={{ fontSize: '12px', color: 'var(--accent-primary)', marginBottom: '4px' }}>Product Base: {item.productName}</p>
+                      {item.printReadyFileUrl && (
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                          📄 Print-Ready File: <a href={item.printReadyFileUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'underline', fontWeight: '600' }}>{item.printReadyFileName || 'View Uploaded File'}</a>
+                        </div>
+                      )}
                       
                       {/* Opciones Seleccionadas */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
