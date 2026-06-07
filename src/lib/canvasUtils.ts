@@ -52,21 +52,33 @@ export function getCanvasDimensions(product: any, selectedSpecs: Record<string, 
         const num1 = parseFloat(match[1]);
         const num2 = parseFloat(match[2]);
         if (!isNaN(num1) && !isNaN(num2)) {
-          const maxParsed = Math.max(num1, num2);
-          const maxProductBase = Math.max(product.widthPx || 1050, product.heightPx || 600);
-          const factor = maxProductBase / maxParsed;
+          let calculatedW = num1;
+          let calculatedH = num2;
           
-          let calculatedW = Math.round(num1 * factor);
-          let calculatedH = Math.round(num2 * factor);
+          const isCm = cleanStr.includes('cm');
+          const isPx = cleanStr.includes('px');
           
-          const isHorizontalDefault = (product.widthPx || 1050) >= (product.heightPx || 600);
-          if (isHorizontalDefault) {
-            baseWidth = Math.max(calculatedW, calculatedH);
-            baseHeight = Math.min(calculatedW, calculatedH);
+          if (isCm) {
+            const bleedCm = bleed * 2.54;
+            const dpiCm = dpi / 2.54;
+            calculatedW = (num1 + bleedCm) * dpiCm;
+            calculatedH = (num2 + bleedCm) * dpiCm;
+          } else if (isPx) {
+            calculatedW = num1 + (bleed * dpi);
+            calculatedH = num2 + (bleed * dpi);
           } else {
-            baseWidth = Math.min(calculatedW, calculatedH);
-            baseHeight = Math.max(calculatedW, calculatedH);
+            // Assume inches by default if numbers are small (<= 100)
+            if (num1 <= 100 && num2 <= 100) {
+              calculatedW = (num1 + bleed) * dpi;
+              calculatedH = (num2 + bleed) * dpi;
+            } else {
+              calculatedW = num1 + (bleed * dpi);
+              calculatedH = num2 + (bleed * dpi);
+            }
           }
+          
+          baseWidth = Math.round(calculatedW);
+          baseHeight = Math.round(calculatedH);
         }
       }
     }
