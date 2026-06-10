@@ -711,11 +711,6 @@ function ProductDetailContent() {
                                   }}
                                 >
                                   <span>{spec.value}</span>
-                                  {spec.priceMarkup > 0 && (
-                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                      {markupText}
-                                    </span>
-                                  )}
                                 </div>
                               );
                             })}

@@ -2123,9 +2123,6 @@ function EditorContent() {
                                         }}
                                       >
                                         <span>{spec.value}</span>
-                                        {spec.priceMarkup > 0 && (
-                                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{markupText}</span>
-                                        )}
                                       </div>
                                     );
                                   })}
