@@ -1,0 +1,182 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING      // Pendiente de pago
+  PAID         // Pagado, listo para imprimir
+  PRINTING     // En proceso de imprenta
+  SHIPPED      // Enviado
+  DELIVERED    // Entregado
+  CANCELLED    // Cancelado
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hash de contraseña
+  name      String
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  designs   CustomDesign[]
+  orders    Order[]
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  name          String
+  description   String
+  basePrice     Float
+  thumbnail     String   // URL de imagen del producto base
+  widthPx       Int      // Ancho sugerido en el editor
+  heightPx      Int      // Alto sugerido en el editor
+  bleedMm       Float    // Línea de sangrado en mm para imprenta
+  dpi           Int?     // Opcional: DPI personalizado para este producto (ej: 150, 300)
+  globalOptionIds Json?   // Reusable global options associated with this product (e.g. ["opt-size"])
+  images        Json?    // Gallery image URLs list
+  categoryId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  specs         ProductSpec[]
+  designs       CustomDesign[]
+  orderItems    OrderItem[]
+  templates     Template[]
+}
+
+model ProductSpec {
+  id          String   @id @default(uuid())
+  productId   String
+  group       String   // Ej: "Material", "Acabado", "Cantidad"
+  value       String   // Ej: "Papel Mate Premium", "Brillo UV", "100 unidades"
+  priceMarkup Float    // Incremento de precio por seleccionar esta opción
+  markupType  String   @default("FLAT") // "FLAT" o "PERCENTAGE"
+  isBasePrice Boolean  @default(false) // Si es true, el valor reemplaza el precio base del producto
+  imageUrl    String?  // URL de la imagen del atributo si se desea cambiar el display
+  position    Int      @default(0)
+  horizontal  Float    @default(0)
+  vertical    Float    @default(0)
+  
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model CustomDesign {
+  id          String   @id @default(uuid())
+  userId      String?  // Opcional para compras de invitados
+  productId   String
+  name        String   @default("Mi Diseño Personalizado")
+  canvasData  Json     // Contiene la estructura JSON de elementos del canvas (textos, imágenes, formas)
+  previewUrl  String   // Captura en base64 o URL del diseño final
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  userId          String?     // Opcional si es compra de invitado
+  status          OrderStatus @default(PENDING)
+  totalAmount     Float
+  shippingName    String
+  shippingAddress String
+  shippingCity    String
+  shippingZip     String
+  shippingPhone   String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id             String   @id @default(uuid())
+  orderId        String
+  productId      String
+  customDesignId String
+  quantity       Int
+  selectedSpecs  Json     // Copia estática de las especificaciones elegidas (ej: { "Material": "Mate", "Cantidad": "250" })
+  unitPrice      Float
+  
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id])
+  customDesign   CustomDesign @relation(fields: [customDesignId], references: [id])
+}
+
+model GlobalOption {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  description String
+  categoryId  String?
+  categoryIds Json?             // Array of category IDs for multiple category support
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  category    Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  attributes  GlobalAttribute[]
+}
+
+model GlobalAttribute {
+  id          String       @id @default(uuid())
+  optionId    String
+  value       String       
+  metric      String       
+  priceMarkup Float        
+  markupType  String       @default("FLAT") // "FLAT" o "PERCENTAGE"
+  isBasePrice Boolean      @default(false) // Si es true, el valor reemplaza el precio base del producto
+  imageUrl    String?      // URL de la imagen del atributo si se desea cambiar el display
+  horizontal  Float        @default(0)
+  vertical    Float        @default(0)
+
+  option      GlobalOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  slug          String         @unique
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  products      Product[]
+  globalOptions GlobalOption[]
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Template {
+  id          String   @id @default(uuid())
+  productId   String
+  name        String   @default("Template Name")
+  canvasData  Json
+  previewUrl  String
+  targetSpecs Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
