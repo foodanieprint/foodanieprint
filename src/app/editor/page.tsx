@@ -235,6 +235,11 @@ function EditorContent() {
 
   // Check user role and load designer settings on mount
   useEffect(() => {
+    const footer = document.querySelector('footer');
+    if (footer) {
+      footer.style.display = 'none';
+    }
+
     async function checkUser() {
       try {
         const res = await fetch('/api/auth');
@@ -265,6 +270,12 @@ function EditorContent() {
     }
     checkUser();
     loadDesignerSettings();
+
+    return () => {
+      if (footer) {
+        footer.style.display = '';
+      }
+    };
   }, []);
 
   // 1. Fetch Product details from API

@@ -2,17 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ShoppingCart, User, Printer, LogOut, Shield, Menu, X } from 'lucide-react';
 import AuthModal from './AuthModal';
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
+
+  // Si estamos en el editor de canvas, ocultamos la barra de navegación estándar
+  if (pathname === '/editor') {
+    return null;
+  }
 
   // 1. Verificar sesión de usuario
   const checkAuth = async () => {
