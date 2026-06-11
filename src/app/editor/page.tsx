@@ -285,17 +285,18 @@ function EditorContent() {
         const res = await fetch(`/api/products/${productSlug}`);
         if (!res.ok) throw new Error('Product not found');
         const prodData = await res.json();
+        prodData.specs = prodData.specs || [];
         setProduct(prodData);
         
         // Inicializar especificaciones por defecto o cargadas de la URL
         const initialSpecs: Record<string, string> = {};
-        const specGroups = new Set(prodData.specs.map((s: any) => s.group));
+        const specGroups = new Set((prodData.specs || []).map((s: any) => s.group));
         specGroups.forEach((group: any) => {
           const queryVal = searchParams.get(group);
-          if (queryVal && prodData.specs.some((s: any) => s.group === group && s.value === queryVal)) {
+          if (queryVal && (prodData.specs || []).some((s: any) => s.group === group && s.value === queryVal)) {
             initialSpecs[group] = queryVal;
           } else {
-            const firstVal = prodData.specs.find((s: any) => s.group === group);
+            const firstVal = (prodData.specs || []).find((s: any) => s.group === group);
             if (firstVal) initialSpecs[group] = firstVal.value;
           }
         });
