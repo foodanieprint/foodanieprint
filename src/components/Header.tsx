@@ -15,10 +15,6 @@ export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
 
-  // Si estamos en el editor de canvas, ocultamos la barra de navegación estándar
-  if (pathname === '/editor') {
-    return null;
-  }
 
   // 1. Verificar sesión de usuario
   const checkAuth = async () => {
@@ -73,6 +69,11 @@ export default function Header() {
       console.error(err);
     }
   };
+
+  // Si estamos en el editor de canvas, ocultamos la barra de navegación estándar
+  if (pathname === '/editor') {
+    return null;
+  }
 
   return (
     <>
