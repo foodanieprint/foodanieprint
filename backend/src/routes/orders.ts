@@ -85,7 +85,7 @@ ordersRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
       calculatedTotal += parseFloat(item.unitPrice) * parseInt(item.quantity);
     }
 
-    let order;
+    let order: { id: string } | null = null;
 
     try {
       order = await db.$transaction(async (tx) => {
@@ -102,13 +102,19 @@ ordersRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
           },
         });
 
-        const itemsData = items.map((item: any) => ({
+        const itemsData = items.map((item: {
+          productId: string;
+          customDesignId: string;
+          quantity: string | number;
+          selectedSpecs: unknown;
+          unitPrice: string | number;
+        }) => ({
           orderId: newOrder.id,
           productId: item.productId,
           customDesignId: item.customDesignId,
-          quantity: parseInt(item.quantity),
+          quantity: parseInt(item.quantity as string),
           selectedSpecs: typeof item.selectedSpecs === 'string' ? JSON.parse(item.selectedSpecs) : item.selectedSpecs,
-          unitPrice: parseFloat(item.unitPrice),
+          unitPrice: parseFloat(item.unitPrice as string),
         }));
 
         await tx.orderItem.createMany({
@@ -146,7 +152,7 @@ ordersRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
       orderId: order?.id,
       order,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error al crear pedido:', error);
     return res.status(500).json({ error: 'Error interno del servidor al procesar el pedido' });
   }

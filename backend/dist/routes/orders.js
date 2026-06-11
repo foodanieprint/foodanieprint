@@ -72,7 +72,7 @@ ordersRouter.post('/', async (req, res) => {
         for (const item of items) {
             calculatedTotal += parseFloat(item.unitPrice) * parseInt(item.quantity);
         }
-        let order;
+        let order = null;
         try {
             order = await db.$transaction(async (tx) => {
                 const newOrder = await tx.order.create({
