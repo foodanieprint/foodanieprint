@@ -205,6 +205,17 @@ function EditorContent() {
   const [bleedValue, setBleedValue] = useState(0.25);
   const [dpiValue, setDpiValue] = useState(300);
   const [globalDpi, setGlobalDpi] = useState(300);
+  const [activeMenu, setActiveMenu] = useState<'file' | 'edit' | 'view' | null>(null);
+
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setActiveMenu(null);
+    };
+    window.addEventListener('click', handleGlobalClick);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+    };
+  }, []);
 
   // Load templates list for product
   const loadTemplates = async (productId: string, currentSpecs?: Record<string, string>) => {
@@ -1067,6 +1078,46 @@ function EditorContent() {
     });
   };
 
+  // 8. Guardar Diseño en API (sin ir al carrito)
+  const handleSaveDesignOnly = async () => {
+    if (!product) return;
+    setSaving(true);
+    try {
+      let finalFront = frontElements;
+      let finalBack = backElements;
+      if (activePage === 'front') {
+        finalFront = canvasElements;
+      } else {
+        finalBack = canvasElements;
+      }
+
+      const canvasBlobData = JSON.stringify({
+        front: finalFront,
+        back: finalBack
+      });
+      
+      const response = await fetch('/api/designs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: designId || undefined,
+          productId: product.id,
+          name: canvasName,
+          canvasData: canvasBlobData,
+          previewUrl: '',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Error saving custom design layout');
+      alert('Design saved successfully!');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error saving design.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // 8. Guardar Diseño en API & añadir al Carrito
   const saveDesignAndCheckout = async () => {
     setSaving(true);
@@ -1585,12 +1636,221 @@ function EditorContent() {
       <header style={{ height: '56px', background: '#ffffff', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', flexShrink: 0, zIndex: 100 }}>
         {/* Left: Logo + Menus */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ff6600', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontWeight: 'bold', fontSize: '18px' }}>X</div>
-          <nav style={{ display: 'flex', gap: '16px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)' }}>
-            <span style={{ cursor: 'pointer' }}>File</span>
-            <span style={{ cursor: 'pointer' }}>Edit</span>
-            <span style={{ cursor: 'pointer' }}>View</span>
-            <span style={{ cursor: 'pointer' }}>?</span>
+          <button 
+            onClick={() => router.push(`/products/${productSlug}`)}
+            style={{ 
+              width: '36px', 
+              height: '36px', 
+              borderRadius: '50%', 
+              background: '#f3f4f6', 
+              border: 'none', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              color: 'var(--text-primary)', 
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+              outline: 'none'
+            }}
+            title="Back to Product Page"
+            onMouseOver={(e) => (e.currentTarget.style.background = '#e5e7eb')}
+            onMouseOut={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+          >
+            <ArrowLeft size={18} />
+          </button>
+          
+          <nav style={{ display: 'flex', gap: '8px', fontSize: '14px', fontWeight: '500', color: 'var(--text-secondary)' }}>
+            {/* File Menu */}
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'file' ? null : 'file'); }}
+                style={{ background: activeMenu === 'file' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', outline: 'none' }}
+              >
+                File
+              </button>
+              {activeMenu === 'file' && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '8px',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  padding: '8px 0',
+                  minWidth: '180px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  zIndex: 200,
+                }} onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => { handleSaveDesignOnly(); setActiveMenu(null); }}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer', width: '100%' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    💾 Save Design
+                  </button>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => { setShowSaveTemplateModal(true); setActiveMenu(null); }}
+                      style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer', width: '100%' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      🌟 Save as Template
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => { if (confirm('Are you sure you want to clear your layout?')) { setCanvasElements([]); saveToHistory([]); } setActiveMenu(null); }}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: '#ef4444', cursor: 'pointer', width: '100%' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    🗑️ Clear Canvas
+                  </button>
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
+                  <button 
+                    onClick={() => { if (confirm('Do you want to exit the editor? Unsaved changes will be lost.')) { router.push(`/products/${productSlug}`); } }}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', width: '100%' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    🚪 Exit Editor
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Edit Menu */}
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'edit' ? null : 'edit'); }}
+                style={{ background: activeMenu === 'edit' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', outline: 'none' }}
+              >
+                Edit
+              </button>
+              {activeMenu === 'edit' && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '8px',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  padding: '8px 0',
+                  minWidth: '180px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  zIndex: 200,
+                }} onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => { undo(); setActiveMenu(null); }}
+                    disabled={historyIndex <= 0}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: historyIndex <= 0 ? 'var(--text-muted)' : 'var(--text-primary)', cursor: historyIndex <= 0 ? 'not-allowed' : 'pointer', width: '100%' }}
+                    onMouseOver={(e) => { if (historyIndex > 0) e.currentTarget.style.background = 'var(--bg-secondary)'; }}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    ↩️ Undo
+                  </button>
+                  <button 
+                    onClick={() => { redo(); setActiveMenu(null); }}
+                    disabled={historyIndex >= history.length - 1}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: historyIndex >= history.length - 1 ? 'var(--text-muted)' : 'var(--text-primary)', cursor: historyIndex >= history.length - 1 ? 'not-allowed' : 'pointer', width: '100%' }}
+                    onMouseOver={(e) => { if (historyIndex < history.length - 1) e.currentTarget.style.background = 'var(--bg-secondary)'; }}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    ↪️ Redo
+                  </button>
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
+                  <button 
+                    onClick={() => {
+                      if (selectedElementId) {
+                        setCanvasElements(prev => prev.filter(el => el.id !== selectedElementId));
+                        setSelectedElementId(null);
+                      } else if (selectedElementIds.length > 0) {
+                        setCanvasElements(prev => prev.filter(el => !selectedElementIds.includes(el.id)));
+                        setSelectedElementIds([]);
+                      }
+                      setActiveMenu(null);
+                    }}
+                    disabled={!selectedElementId && selectedElementIds.length === 0}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: (!selectedElementId && selectedElementIds.length === 0) ? 'var(--text-muted)' : 'var(--text-primary)', cursor: (!selectedElementId && selectedElementIds.length === 0) ? 'not-allowed' : 'pointer', width: '100%' }}
+                    onMouseOver={(e) => { if (selectedElementId || selectedElementIds.length > 0) e.currentTarget.style.background = 'var(--bg-secondary)'; }}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    ❌ Delete Selected
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* View Menu */}
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'view' ? null : 'view'); }}
+                style={{ background: activeMenu === 'view' ? 'var(--bg-secondary)' : 'transparent', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', outline: 'none' }}
+              >
+                View
+              </button>
+              {activeMenu === 'view' && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '8px',
+                  background: '#ffffff',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  padding: '8px 0',
+                  minWidth: '180px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  zIndex: 200,
+                }} onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => { setShowRulers(!showRulers); setActiveMenu(null); }}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>📏 Show Rulers</span>
+                    <span style={{ fontSize: '11px', color: 'var(--accent-primary)' }}>{showRulers ? '✔' : ''}</span>
+                  </button>
+                  <button 
+                    onClick={() => { setShowBleed(!showBleed); setActiveMenu(null); }}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>✂ Show Bleed Line</span>
+                    <span style={{ fontSize: '11px', color: 'var(--accent-primary)' }}>{showBleed ? '✔' : ''}</span>
+                  </button>
+                  <button 
+                    onClick={() => { setShowSafeZone(!showSafeZone); setActiveMenu(null); }}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>🛡 Show Safe Zone</span>
+                    <span style={{ fontSize: '11px', color: 'var(--accent-primary)' }}>{showSafeZone ? '✔' : ''}</span>
+                  </button>
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
+                  <button 
+                    onClick={() => { resetZoomToFit(); setActiveMenu(null); }}
+                    style={{ background: 'none', border: 'none', textAlign: 'left', padding: '8px 16px', fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer', width: '100%' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    🔍 Fit Zoom to Screen
+                  </button>
+                </div>
+              )}
+            </div>
           </nav>
         </div>
 
