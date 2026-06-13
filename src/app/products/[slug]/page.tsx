@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Flame, Award, ArrowLeft, Paintbrush, Upload, CheckCircle2, ShieldCheck, HelpCircle, ChevronDown,
-  ShoppingCart
+  ShoppingCart, X
 } from 'lucide-react';
 
 function ProductDetailContent() {
@@ -21,6 +21,104 @@ function ProductDetailContent() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string>('');
   const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  // States for Print-Ready Upload Modal
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState('');
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleUploadFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadFile(file);
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Upload failed');
+      }
+
+      const data = await res.json();
+      setUploadedFileUrl(data.url);
+      setUploadedFileName(file.name);
+    } catch (err: any) {
+      alert(err.message || 'Error uploading file.');
+      setUploadFile(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadAddToCart = async () => {
+    if (!product) return;
+    if (!uploadedFileUrl) {
+      alert('Please upload a print-ready file first.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const canvasBlobData = JSON.stringify({
+        isUploadMode: true,
+        fileUrl: uploadedFileUrl,
+        fileName: uploadedFileName,
+      });
+
+      const response = await fetch('/api/designs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          name: `Upload: ${uploadedFileName}`,
+          canvasData: canvasBlobData,
+          previewUrl: uploadedFileUrl.toLowerCase().endsWith('.pdf') ? product.thumbnail : uploadedFileUrl,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Error saving custom design layout');
+      const savedDesign = await response.json();
+
+      const cartItem = {
+        id: `cart-item-${Date.now()}`,
+        productId: product.id,
+        productSlug: product.slug,
+        productName: product.name,
+        thumbnail: uploadedFileUrl.toLowerCase().endsWith('.pdf') ? product.thumbnail : uploadedFileUrl,
+        customDesignId: savedDesign.id,
+        designName: `Upload: ${uploadedFileName}`,
+        quantity: 1,
+        selectedSpecs: JSON.stringify(selectedSpecs),
+        unitPrice: unitPrice,
+        printReadyFileUrl: uploadedFileUrl,
+        printReadyFileName: uploadedFileName,
+      };
+
+      const existingCart = JSON.parse(localStorage.getItem('printear_cart') || '[]');
+      existingCart.push(cartItem);
+      localStorage.setItem('printear_cart', JSON.stringify(existingCart));
+
+      setIsUploadModalOpen(false);
+      router.push('/cart');
+    } catch (err: any) {
+      alert(err.message || 'An error occurred while adding file to cart.');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Cargar producto por slug
   useEffect(() => {
@@ -812,13 +910,14 @@ function ProductDetailContent() {
                   <Paintbrush size={16} /> Design Online
                 </Link>
 
-                <Link 
-                  href={`/editor?product=${product.slug}&mode=upload&${new URLSearchParams(selectedSpecs).toString()}`} 
+                <button 
+                  type="button"
+                  onClick={() => setIsUploadModalOpen(true)}
                   className="btn btn-secondary" 
                   style={{ width: '100%', gap: '8px', padding: '14px' }}
                 >
                   <Upload size={16} /> Upload Print-Ready Design
-                </Link>
+                </button>
               </div>
             </div>
 
@@ -883,6 +982,159 @@ function ProductDetailContent() {
             >
               &times;
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Print-Ready Design Modal */}
+      {isUploadModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+          onClick={() => setIsUploadModalOpen(false)}
+        >
+          <div 
+            style={{ 
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '40px',
+              width: '90%',
+              maxWidth: '600px',
+              position: 'relative',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '24px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsUploadModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)'
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(0, 111, 66, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
+              <Upload size={32} />
+            </div>
+
+            <div>
+              <h2 style={{ fontSize: '22px', color: 'var(--text-primary)', marginBottom: '8px', fontWeight: '800' }}>Upload Print-Ready File</h2>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: '0 auto', maxWidth: '400px' }}>
+                Upload your high-resolution layout file. We support **PDF, JPG, and PNG** files in their original quality.
+              </p>
+            </div>
+
+            {/* DROPZONE AREA */}
+            <div 
+              style={{
+                width: '100%',
+                border: '2px dashed var(--border-color)',
+                borderRadius: '8px',
+                padding: '30px 20px',
+                background: '#f8fafc',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                position: 'relative'
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files?.[0];
+                if (file) {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  const dataTransfer = new DataTransfer();
+                  dataTransfer.items.add(file);
+                  input.files = dataTransfer.files;
+                  const event = { target: input } as unknown as React.ChangeEvent<HTMLInputElement>;
+                  handleUploadFileChange(event);
+                }
+              }}
+            >
+              <input 
+                type="file" 
+                accept="image/*,application/pdf" 
+                onChange={handleUploadFileChange} 
+                style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} 
+              />
+              {uploading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>Uploading file in original quality...</span>
+                </div>
+              ) : uploadedFileUrl ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                  <div style={{ fontSize: '32px' }}>{uploadedFileName.toLowerCase().endsWith('.pdf') ? '📄' : '🖼️'}</div>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0, wordBreak: 'break-all' }}>{uploadedFileName}</p>
+                    <span style={{ fontSize: '12px', color: 'var(--success)', fontWeight: '600' }}>✔ Uploaded Successfully</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>Click to browse files</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>or drag and drop layout files here</span>
+                </div>
+              )}
+            </div>
+
+            {uploadedFileUrl && !uploadedFileName.toLowerCase().endsWith('.pdf') && (
+              <div style={{ width: '100%', height: '180px', borderRadius: '8px', border: '1px solid var(--border-color)', overflow: 'hidden', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={uploadedFileUrl} alt="Uploaded Print Ready Layout" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '16px', width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: '10px' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                style={{ flex: 1, padding: '12px' }} 
+                onClick={() => setIsUploadModalOpen(false)}
+              >
+                <ArrowLeft size={16} /> Back to Product
+              </button>
+              
+              <button 
+                className="btn btn-primary" 
+                style={{ flex: 1, padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} 
+                onClick={handleUploadAddToCart}
+                disabled={saving || uploading || !uploadedFileUrl}
+              >
+                {saving ? (
+                  'Saving...'
+                ) : uploading ? (
+                  'Uploading...'
+                ) : !uploadedFileUrl ? (
+                  'Upload Design First'
+                ) : (
+                  <>
+                    <ShoppingCart size={16} /> Add to Cart
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
