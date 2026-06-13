@@ -23,7 +23,10 @@ const allowedOrigins = [
 ].filter(Boolean);
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+        if (!origin ||
+            allowedOrigins.includes(origin) ||
+            origin.startsWith('http://localhost:') ||
+            origin.includes('railway.app')) {
             callback(null, true);
         }
         else {
