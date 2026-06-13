@@ -820,7 +820,11 @@ function EditorContent() {
     if (!selectedElementId) return;
     const updated = canvasElements.map(el => {
       if (el.id === selectedElementId) {
-        return { ...el, ...updates };
+        const newEl = { ...el, ...updates };
+        if (el.type === 'text' && updates.fontSize && !updates.height) {
+          newEl.height = Math.round(updates.fontSize * 1.6);
+        }
+        return newEl;
       }
       return el;
     });
@@ -3217,6 +3221,7 @@ function EditorContent() {
                       textAlign: el.textAlign || 'left',
                       fontWeight: el.fontWeight === 'bold' ? 700 : (el.fontFamily === 'Outfit' ? 700 : 400),
                       fontStyle: el.fontStyle || 'normal',
+                      lineHeight: '1.2',
                     }}
                   >
                     {el.text}
