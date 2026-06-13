@@ -3197,7 +3197,7 @@ function EditorContent() {
                   left: `${el.x}px`,
                   top: `${el.y}px`,
                   width: `${el.width}px`,
-                  height: `${el.height}px`,
+                  height: el.type === 'text' ? 'auto' : `${el.height}px`,
                   transform: `rotate(${el.angle}deg)`,
                   zIndex: canvasElements.indexOf(el) + 1,
                 }}
@@ -3208,11 +3208,15 @@ function EditorContent() {
                     contentEditable
                     suppressContentEditableWarning
                     onBlur={(e) => {
-                      updateSelectedElement({ text: e.currentTarget.textContent || '' });
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      updateSelectedElement({ 
+                        text: e.currentTarget.textContent || '',
+                        height: Math.round(rect.height / scale)
+                      });
                     }}
                     style={{
                       width: '100%',
-                      height: '100%',
+                      height: 'auto',
                       fontFamily: el.fontFamily || 'Inter',
                       fontSize: `${el.fontSize || 16}px`,
                       color: el.color || '#000000',
