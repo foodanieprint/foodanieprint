@@ -48,6 +48,7 @@ model Product {
   globalOptionIds Json?   // Reusable global options associated with this product (e.g. ["opt-size"])
   images        Json?    // Gallery image URLs list
   categoryId    String?
+  isFeatured    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

@@ -28,6 +28,7 @@ export interface MockProduct {
   specs: MockProductSpec[];
   globalOptionIds?: string[];
   categoryId?: string;
+  isFeatured?: boolean;
 }
 
 export interface MockUser {
@@ -116,7 +117,8 @@ export const MOCK_PRODUCTS: MockProduct[] = [
       { id: 'spec-c17', productId: 'prod-cards', group: 'Coating', value: 'None', priceMarkup: 0.0 }
     ],
     globalOptionIds: ['opt-size', 'opt-orientation', 'opt-paper', 'opt-color', 'opt-qty', 'opt-corner', 'opt-coating'],
-    categoryId: 'cat-cards'
+    categoryId: 'cat-cards',
+    isFeatured: true
   },
   {
     id: 'prod-tshirts',
@@ -149,7 +151,8 @@ export const MOCK_PRODUCTS: MockProduct[] = [
       { id: 'spec-t10', productId: 'prod-tshirts', group: 'Material', value: '100% Organic Combed Cotton', priceMarkup: 0.0 },
       { id: 'spec-t11', productId: 'prod-tshirts', group: 'Material', value: 'Premium Breathable Polyester', priceMarkup: 2.50 }
     ],
-    categoryId: 'cat-tshirts'
+    categoryId: 'cat-tshirts',
+    isFeatured: true
   },
   {
     id: 'prod-mugs',
@@ -527,6 +530,7 @@ export const mockDb = {
       widthPx: parseInt(data.widthPx || '1000'),
       heightPx: parseInt(data.heightPx || '600'),
       bleedMm: parseFloat(data.bleedMm || '2.0'),
+      isFeatured: !!data.isFeatured,
       specs: (data.specs || []).map((spec: any, idx: number) => ({
         id: `spec-${newId}-${idx}`,
         productId: newId,
@@ -567,6 +571,7 @@ export const mockDb = {
         widthPx: parseInt(data.widthPx || '1000'),
         heightPx: parseInt(data.heightPx || '600'),
         bleedMm: parseFloat(data.bleedMm || '2.0'),
+        isFeatured: data.isFeatured !== undefined ? !!data.isFeatured : MOCK_PRODUCTS[idx].isFeatured,
         specs: (data.specs || []).map((spec: any, sIdx: number) => ({
           id: spec.id || `spec-${id}-${sIdx}`,
           productId: id,

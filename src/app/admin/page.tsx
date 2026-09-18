@@ -94,6 +94,7 @@ export default function AdminPage() {
   const [newProdPrice, setNewProdPrice] = useState('');
   const [newProdThumb, setNewProdThumb] = useState('');
   const [newProdImages, setNewProdImages] = useState<string[]>([]);
+  const [newProdIsFeatured, setNewProdIsFeatured] = useState(false);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
 
@@ -504,7 +505,8 @@ export default function AdminPage() {
           vertical: parseFloat(spec.vertical || '0') || 0,
         })),
         globalOptionIds: selectedGlobalOptionIds,
-        categoryId: newProdCategoryId || null
+        categoryId: newProdCategoryId || null,
+        isFeatured: newProdIsFeatured
       };
 
       const res = await fetch(url, {
@@ -527,6 +529,7 @@ export default function AdminPage() {
         setNewProdPrice('');
         setNewProdThumb('');
         setNewProdImages([]);
+        setNewProdIsFeatured(false);
         setNewProdCategoryId('');
         setSelectedGlobalOptionIds([]);
         setNewProdSpecs([
@@ -552,6 +555,7 @@ export default function AdminPage() {
     setNewProdDesc(product.description);
     setNewProdPrice(product.basePrice.toString());
     setNewProdThumb(product.thumbnail);
+    setNewProdIsFeatured(!!product.isFeatured);
     
     // Parse images safely
     const gallery = Array.isArray(product.images)
@@ -592,6 +596,7 @@ export default function AdminPage() {
     setNewProdPrice('');
     setNewProdThumb('');
     setNewProdImages([]);
+    setNewProdIsFeatured(false);
     setNewProdWidth('1000');
     setNewProdHeight('600');
     setNewProdBleed('2.0');
@@ -1319,6 +1324,11 @@ export default function AdminPage() {
                       <span style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--accent-primary)', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}>
                         ${product.basePrice.toFixed(2)}
                       </span>
+                      {product.isFeatured && (
+                        <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'var(--accent-orange)', color: '#ffffff', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}>
+                          ★ Featured
+                        </span>
+                      )}
                     </div>
 
                     {/* Content */}
@@ -1383,6 +1393,19 @@ export default function AdminPage() {
                   <label className="form-label">Catalog Base Price ($)</label>
                   <input type="number" required step="0.01" className="input-field" value={newProdPrice} onChange={(e) => setNewProdPrice(e.target.value)} placeholder="e.g. 19.99" />
                 </div>
+              </div>
+
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', background: 'rgba(255, 102, 0, 0.05)', border: '1px solid rgba(255, 102, 0, 0.15)', padding: '12px', borderRadius: 'var(--radius-sm)' }}>
+                <input 
+                  type="checkbox" 
+                  id="newProdIsFeatured" 
+                  checked={newProdIsFeatured} 
+                  onChange={(e) => setNewProdIsFeatured(e.target.checked)} 
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <label htmlFor="newProdIsFeatured" className="form-label" style={{ marginBottom: '0', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                  <strong>Featured Product</strong> (Flag this item to show up in the "Featured for You" section on the Home Page)
+                </label>
               </div>
 
               <div className="form-group">

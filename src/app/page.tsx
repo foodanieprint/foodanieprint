@@ -114,6 +114,59 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* 1.5 FEATURED PRODUCTS SECTION */}
+      {products.some((p: any) => p.isFeatured) && (
+        <section style={{ padding: '60px 0 20px 0', background: 'var(--bg-primary)' }}>
+          <div className="container">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px' }}>
+              <Sparkles size={22} style={{ color: 'var(--accent-orange)' }} />
+              <h2 style={{ fontSize: '28px', fontWeight: '800', fontFamily: 'var(--font-title)' }}>Featured for You</h2>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '32px' }}>
+              {products.filter((p: any) => p.isFeatured).map((prod) => (
+                <div key={prod.id} className="glass-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+                  {/* Top Rated Badge */}
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'var(--accent-orange)', color: '#ffffff', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: 'var(--radius-sm)', zIndex: 10 }}>
+                    ★ TOP RATED
+                  </div>
+                  
+                  {/* Cover Image */}
+                  <div style={{ height: '200px', width: '100%', position: 'relative', overflow: 'hidden' }}>
+                    <img 
+                      src={prod.thumbnail} 
+                      alt={prod.name} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }} 
+                      className="prod-img"
+                    />
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(11, 13, 23, 0.85)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 'bold', color: 'var(--accent-secondary)', border: '1px solid var(--border-color)', zIndex: 10 }}>
+                      From ${prod.basePrice.toFixed(2)}
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <h3 style={{ fontSize: '20px', marginBottom: '10px' }}>{prod.name}</h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px', flex: 1 }}>
+                      {prod.description}
+                    </p>
+                    
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', display: 'flex', gap: '12px' }}>
+                      <Link href={`/products/${prod.slug}`} className="btn btn-secondary btn-sm" style={{ flex: 1 }}>
+                        Configure
+                      </Link>
+                      <Link href={`/editor?product=${prod.slug}`} className="btn btn-primary btn-sm" style={{ flex: 1, padding: '8px 12px' }}>
+                        Personalize
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 2. PRODUCT CATALOG */}
       <section id="products" style={{ padding: 'var(--section-padding-y) 0', background: 'var(--bg-secondary)' }}>
         <div className="container">
