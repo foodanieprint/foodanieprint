@@ -18,7 +18,7 @@ export interface MockProduct {
   id: string;
   name: string;
   slug: string;
-  description: string;
+  description?: string;
   basePrice: number;
   thumbnail: string;
   images?: string[];
@@ -52,7 +52,7 @@ export interface MockGlobalAttribute {
 export interface MockGlobalOption {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   attributes: MockGlobalAttribute[];
   categoryId?: string;
   categoryIds?: string[];

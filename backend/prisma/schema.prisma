@@ -38,7 +38,7 @@ model Product {
   id            String   @id @default(uuid())
   slug          String   @unique
   name          String
-  description   String
+  description   String?
   basePrice     Float
   thumbnail     String   // URL de imagen del producto base
   widthPx       Int      // Ancho sugerido en el editor
@@ -124,7 +124,7 @@ model OrderItem {
 model GlobalOption {
   id          String            @id @default(uuid())
   name        String            @unique
-  description String
+  description String?
   categoryId  String?
   categoryIds Json?             // Array of category IDs for multiple category support
   createdAt   DateTime          @default(now())

@@ -166,7 +166,7 @@ productsRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     const { name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId, isFeatured } = req.body;
 
-    if (!name || !description || !basePrice || !thumbnail || !widthPx || !heightPx) {
+    if (!name || !basePrice || !thumbnail || !widthPx || !heightPx) {
       return res.status(400).json({ error: 'Missing mandatory fields' });
     }
 
@@ -191,7 +191,7 @@ productsRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
           data: {
             name,
             slug,
-            description,
+            description: description || '',
             basePrice: parseFloat(basePrice),
             thumbnail,
             images: images || [],
@@ -264,7 +264,7 @@ productsRouter.put('/', async (req: AuthenticatedRequest, res: Response) => {
 
     const { id, name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId, isFeatured } = req.body;
 
-    if (!id || !name || !description || !basePrice || !thumbnail || !widthPx || !heightPx) {
+    if (!id || !name || !basePrice || !thumbnail || !widthPx || !heightPx) {
       return res.status(400).json({ error: 'Missing mandatory fields' });
     }
 
@@ -289,7 +289,7 @@ productsRouter.put('/', async (req: AuthenticatedRequest, res: Response) => {
         data: {
           name,
           slug,
-          description,
+          description: description || '',
           basePrice: parseFloat(basePrice),
           thumbnail,
           images: images || [],

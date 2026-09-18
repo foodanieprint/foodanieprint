@@ -1337,7 +1337,7 @@ export default function AdminPage() {
                         {product.name}
                       </h4>
                       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px', flex: 1 }}>
-                        {product.description.length > 95 ? `${product.description.substring(0, 95)}...` : product.description}
+                        {(product.description || '').length > 95 ? `${(product.description || '').substring(0, 95)}...` : (product.description || 'No description.')}
                       </p>
 
                       {/* Workspace Specifications */}
@@ -1409,9 +1409,8 @@ export default function AdminPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Detailed Product Specifications & Features</label>
+                <label className="form-label">Detailed Product Specifications & Features (Optional)</label>
                 <textarea 
-                  required 
                   className="input-field" 
                   style={{ height: '80px', resize: 'vertical' }}
                   value={newProdDesc} 
@@ -2103,8 +2102,8 @@ export default function AdminPage() {
                   <input type="text" required className="input-field" value={newOptionName} onChange={(e) => setNewOptionName(e.target.value)} placeholder="e.g. Size" />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Brief Description / Customer Tooltip</label>
-                  <input type="text" required className="input-field" value={newOptionDesc} onChange={(e) => setNewOptionDesc(e.target.value)} placeholder="Explain the dynamic choices or finishing attributes to the client..." />
+                  <label className="form-label">Brief Description / Customer Tooltip (Optional)</label>
+                  <input type="text" className="input-field" value={newOptionDesc} onChange={(e) => setNewOptionDesc(e.target.value)} placeholder="Explain the dynamic choices or finishing attributes to the client..." />
                 </div>
                 <div className="form-group" style={{ gridColumn: 'span 1' }}>
                   <label className="form-label">Category Filter (Optional - Select Multiple)</label>
@@ -2216,7 +2215,6 @@ export default function AdminPage() {
                         <input 
                           type="number" 
                           step="0.01" 
-                          required 
                           className="input-field" 
                           style={{ padding: '8px' }} 
                           value={row.horizontal} 
@@ -2229,7 +2227,6 @@ export default function AdminPage() {
                         <input 
                           type="number" 
                           step="0.01" 
-                          required 
                           className="input-field" 
                           style={{ padding: '8px' }} 
                           value={row.vertical} 
@@ -2242,7 +2239,6 @@ export default function AdminPage() {
                         <input 
                           type="number" 
                           step="0.01" 
-                          required 
                           className="input-field" 
                           style={{ padding: '8px' }} 
                           value={row.priceMarkup} 

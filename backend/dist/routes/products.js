@@ -153,8 +153,8 @@ productsRouter.post('/', async (req, res) => {
         if (!req.user || req.user.role !== 'ADMIN') {
             return res.status(403).json({ error: 'Unauthorized. Admin permissions required.' });
         }
-        const { name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId } = req.body;
-        if (!name || !description || !basePrice || !thumbnail || !widthPx || !heightPx) {
+        const { name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId, isFeatured } = req.body;
+        if (!name || !basePrice || !thumbnail || !widthPx || !heightPx) {
             return res.status(400).json({ error: 'Missing mandatory fields' });
         }
         const slug = name
@@ -175,7 +175,7 @@ productsRouter.post('/', async (req, res) => {
                     data: {
                         name,
                         slug,
-                        description,
+                        description: description || '',
                         basePrice: parseFloat(basePrice),
                         thumbnail,
                         images: images || [],
@@ -184,7 +184,8 @@ productsRouter.post('/', async (req, res) => {
                         bleedMm: parseFloat(bleedMm || '0'),
                         dpi: dpi ? parseInt(dpi) : null,
                         globalOptionIds: globalOptionIds || [],
-                        categoryId: categoryId || null
+                        categoryId: categoryId || null,
+                        isFeatured: !!isFeatured
                     },
                 });
                 if (specs && Array.isArray(specs)) {
@@ -224,7 +225,8 @@ productsRouter.post('/', async (req, res) => {
                 bleedMm,
                 specs,
                 globalOptionIds,
-                categoryId
+                categoryId,
+                isFeatured: !!isFeatured
             });
             return res.status(201).json(newMock);
         }
@@ -240,8 +242,8 @@ productsRouter.put('/', async (req, res) => {
         if (!req.user || req.user.role !== 'ADMIN') {
             return res.status(403).json({ error: 'Unauthorized. Admin permissions required.' });
         }
-        const { id, name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId } = req.body;
-        if (!id || !name || !description || !basePrice || !thumbnail || !widthPx || !heightPx) {
+        const { id, name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId, isFeatured } = req.body;
+        if (!id || !name || !basePrice || !thumbnail || !widthPx || !heightPx) {
             return res.status(400).json({ error: 'Missing mandatory fields' });
         }
         try {
@@ -263,7 +265,7 @@ productsRouter.put('/', async (req, res) => {
                 data: {
                     name,
                     slug,
-                    description,
+                    description: description || '',
                     basePrice: parseFloat(basePrice),
                     thumbnail,
                     images: images || [],
@@ -273,6 +275,7 @@ productsRouter.put('/', async (req, res) => {
                     dpi: dpi ? parseInt(dpi) : null,
                     globalOptionIds: globalOptionIds || [],
                     categoryId: categoryId || null,
+                    isFeatured: isFeatured !== undefined ? !!isFeatured : undefined,
                     specs: {
                         createMany: {
                             data: (specs || []).map((spec, idx) => ({
@@ -308,7 +311,8 @@ productsRouter.put('/', async (req, res) => {
                 bleedMm,
                 specs,
                 globalOptionIds,
-                categoryId
+                categoryId,
+                isFeatured: isFeatured !== undefined ? !!isFeatured : undefined
             });
             if (!updatedMock) {
                 return res.status(404).json({ error: 'Product not found' });
