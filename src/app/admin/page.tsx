@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { 
   Shield, BarChart3, ShoppingBag, FolderPlus, Download, 
   RefreshCw, CheckCircle, Truck, Package, ArrowLeft,
-  Plus, Trash2, HelpCircle, Palette, Edit, Upload, GripVertical, Settings, ArrowRight, Sliders
+  Plus, Trash2, HelpCircle, Palette, Edit, Upload, GripVertical, Settings, ArrowRight, Sliders,
+  Layers, Tag, Sparkles
 } from 'lucide-react';
 import { getCanvasDimensions } from '@/lib/canvasUtils';
 
@@ -1950,138 +1951,356 @@ export default function AdminPage() {
         {/* SECCIÓN GLOBAL OPTIONS & ATTRIBUTES */}
         {activeTab === 'options-attributes' && (
           <section>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            {/* Header con estadísticas y CTA */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
               <div>
-                <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-title)', marginBottom: '4px' }}>Global Options & Attributes</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Define reusable dimensions, cardstock densities, ink counts, or finishing types for catalog configurations.</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                  <h2 style={{ fontSize: '22px', fontFamily: 'var(--font-title)', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>
+                    Global Options & Attributes
+                  </h2>
+                  <span style={{ 
+                    fontSize: '11px', 
+                    fontWeight: '700', 
+                    color: 'var(--accent-primary)', 
+                    background: 'rgba(0, 111, 66, 0.08)', 
+                    padding: '2px 8px', 
+                    borderRadius: '12px',
+                    border: '1px solid rgba(0, 111, 66, 0.15)'
+                  }}>
+                    {globalOptions.length} Groups
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>
+                  Reusable dimensions, cardstock densities, ink counts, or finishing types linked to your catalog products.
+                </p>
               </div>
-              <button className="btn btn-primary" onClick={handleOpenCreateOptionClick} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+
+              <button 
+                className="btn btn-primary" 
+                onClick={handleOpenCreateOptionClick} 
+                style={{ 
+                  display: 'flex', 
+                  gap: '8px', 
+                  alignItems: 'center', 
+                  padding: '9px 18px', 
+                  fontSize: '13px', 
+                  fontWeight: '600',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 6px rgba(0, 111, 66, 0.2)'
+                }}
+              >
                 <Plus size={16} /> Create Custom Option
               </button>
             </div>
 
             {loadingGlobalOptions ? (
-              <div style={{ textAlign: 'center', padding: '30px' }}>Syncing attribute tables...</div>
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                <RefreshCw size={20} className="animate-spin" style={{ margin: '0 auto 8px auto', display: 'block', color: 'var(--accent-primary)' }} />
+                Syncing attribute tables...
+              </div>
             ) : globalOptions.length === 0 ? (
-              <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>No global customizable specifications currently defined.</p>
-                <button className="btn btn-secondary btn-sm" style={{ marginTop: '16px' }} onClick={handleOpenCreateOptionClick}>Create First Option</button>
+              <div className="glass-card" style={{ padding: '48px 24px', textAlign: 'center', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(0, 111, 66, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto', color: 'var(--accent-primary)' }}>
+                  <Sliders size={24} />
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>No Options Defined Yet</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto 16px auto' }}>
+                  Create global specifications like Sizes, Paper Stock, or Coating Finishes to easily configure across your products.
+                </p>
+                <button className="btn btn-primary btn-sm" onClick={handleOpenCreateOptionClick}>
+                  <Plus size={14} /> Create First Option
+                </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {globalOptions.map((option) => (
-                  <div key={option.id} className="glass-card" style={{ padding: '24px', background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-sm)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '20px' }}>
-                      <div>
-                        <h3 style={{ fontSize: '18px', fontFamily: 'var(--font-title)', fontWeight: 'bold', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Palette size={18} style={{ color: 'var(--accent-primary)' }} />
-                          {option.name}
-                        </h3>
-                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>{option.description}</p>
-                        
-                        {/* Display linked category names */}
-                        {(() => {
-                          let optionCatIds: string[] = [];
-                          if (option.categoryIds) {
-                            optionCatIds = Array.isArray(option.categoryIds)
-                              ? option.categoryIds
-                              : typeof option.categoryIds === 'string'
-                                ? JSON.parse(option.categoryIds)
-                                : [];
-                          } else if (option.categoryId) {
-                            optionCatIds = [option.categoryId];
-                          }
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {globalOptions.map((option) => {
+                  let optionCatIds: string[] = [];
+                  if (option.categoryIds) {
+                    optionCatIds = Array.isArray(option.categoryIds)
+                      ? option.categoryIds
+                      : typeof option.categoryIds === 'string'
+                        ? JSON.parse(option.categoryIds)
+                        : [];
+                  } else if (option.categoryId) {
+                    optionCatIds = [option.categoryId];
+                  }
 
-                          if (optionCatIds.length > 0) {
-                            const linkedCatNames = optionCatIds
-                              .map(id => categories.find(c => c.id === id)?.name)
-                              .filter(Boolean);
-                            
-                            if (linkedCatNames.length > 0) {
-                              return (
-                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>
-                                  {linkedCatNames.map((name, cIdx) => (
-                                    <span 
-                                      key={cIdx} 
-                                      style={{ 
-                                        fontSize: '11px', 
-                                        fontWeight: '600', 
-                                        color: 'var(--accent-primary)', 
-                                        background: 'rgba(0, 150, 136, 0.08)', 
-                                        border: '1px solid rgba(0, 150, 136, 0.2)', 
-                                        padding: '2px 8px', 
-                                        borderRadius: 'var(--radius-full)' 
-                                      }}
-                                    >
-                                      {name}
-                                    </span>
-                                  ))}
-                                </div>
-                              );
-                            }
-                          }
-                          return (
-                            <div style={{ marginTop: '10px' }}>
-                              <span 
-                                style={{ 
-                                  fontSize: '11px', 
-                                  fontWeight: '600', 
-                                  color: 'var(--text-muted)', 
-                                  background: 'var(--bg-secondary)', 
-                                  border: '1px solid var(--border-color)', 
-                                  padding: '2px 8px', 
-                                  borderRadius: 'var(--radius-full)' 
-                                }}
-                              >
-                                Universal Option
+                  const linkedCatNames = optionCatIds
+                    .map(id => categories.find(c => c.id === id)?.name)
+                    .filter(Boolean);
+
+                  const attrsCount = option.attributes?.length || 0;
+
+                  return (
+                    <div 
+                      key={option.id} 
+                      style={{ 
+                        background: '#ffffff', 
+                        border: '1px solid #e2e8f0', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.015)',
+                        overflow: 'hidden',
+                        transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
+                      }}
+                    >
+                      {/* Option Header Bar */}
+                      <div style={{ 
+                        padding: '14px 18px', 
+                        background: '#fafbfc', 
+                        borderBottom: '1px solid #edf2f7', 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '12px'
+                      }}>
+                        {/* Title & Metadata */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                          <div style={{ 
+                            width: '34px', 
+                            height: '34px', 
+                            borderRadius: '8px', 
+                            background: 'rgba(0, 111, 66, 0.08)', 
+                            color: 'var(--accent-primary)',
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <Palette size={18} />
+                          </div>
+
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
+                                {option.name}
+                              </h3>
+
+                              <span style={{ 
+                                fontSize: '11px', 
+                                fontWeight: '600', 
+                                color: '#64748b', 
+                                background: '#e2e8f0', 
+                                padding: '1px 7px', 
+                                borderRadius: '10px' 
+                              }}>
+                                {attrsCount} {attrsCount === 1 ? 'value' : 'values'}
                               </span>
+
+                              {linkedCatNames.length > 0 ? (
+                                linkedCatNames.map((catName, cIdx) => (
+                                  <span 
+                                    key={cIdx} 
+                                    style={{ 
+                                      fontSize: '11px', 
+                                      fontWeight: '600', 
+                                      color: '#0284c7', 
+                                      background: '#e0f2fe', 
+                                      border: '1px solid #bae6fd', 
+                                      padding: '1px 7px', 
+                                      borderRadius: '10px' 
+                                    }}
+                                  >
+                                    {catName}
+                                  </span>
+                                ))
+                              ) : (
+                                <span 
+                                  style={{ 
+                                    fontSize: '11px', 
+                                    fontWeight: '600', 
+                                    color: '#059669', 
+                                    background: '#ecfdf5', 
+                                    border: '1px solid #a7f3d0', 
+                                    padding: '1px 7px', 
+                                    borderRadius: '10px' 
+                                  }}
+                                >
+                                  Universal Option
+                                </span>
+                              )}
                             </div>
-                          );
-                        })()}
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', gap: '6px', alignItems: 'center' }} onClick={() => handleEditOptionClick(option)}>
-                          <Edit size={12} /> Edit Config
-                        </button>
-                        <button className="btn btn-secondary btn-sm" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', padding: '6px 12px' }} onClick={() => handleDeleteOption(option.id)}>
-                          <Trash2 size={12} /> Delete
-                        </button>
-                      </div>
-                    </div>
 
-                    {/* Attributes Grid List */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-                      {option.attributes?.length === 0 ? (
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No dynamic attributes assigned.</span>
-                      ) : (
-                        option.attributes?.map((attr: any) => (
-                          <div key={attr.id} style={{ padding: '14px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>{attr.value}</span>
-                            {attr.horizontal > 0 && attr.vertical > 0 && (
-                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                                Dimensions: {attr.horizontal} &times; {attr.vertical} {attr.metric}
-                              </span>
+                            {option.description && (
+                              <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0' }}>
+                                {option.description}
+                              </p>
                             )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '11px' }}>
-                              <span style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', textTransform: 'lowercase' }}>{attr.metric || 'unit'}</span>
-                              <span style={{ fontWeight: 'bold', color: attr.isBasePrice ? 'var(--accent-primary)' : (attr.priceMarkup > 0 ? 'var(--success)' : 'var(--text-muted)') }}>
-                                {attr.isBasePrice
-                                  ? `Base Override: $${Number(attr.priceMarkup).toFixed(2)}`
-                                  : (attr.priceMarkup > 0 
-                                      ? (attr.markupType === 'PERCENTAGE' 
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <button 
+                            className="btn btn-secondary btn-sm" 
+                            style={{ 
+                              padding: '5px 11px', 
+                              fontSize: '12px', 
+                              fontWeight: '600',
+                              display: 'flex', 
+                              gap: '5px', 
+                              alignItems: 'center',
+                              borderRadius: '6px',
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              color: '#334155'
+                            }} 
+                            onClick={() => handleEditOptionClick(option)}
+                          >
+                            <Edit size={12} /> Edit
+                          </button>
+                          <button 
+                            className="btn btn-secondary btn-sm" 
+                            style={{ 
+                              padding: '5px 10px', 
+                              fontSize: '12px', 
+                              fontWeight: '600',
+                              display: 'flex', 
+                              gap: '4px', 
+                              alignItems: 'center',
+                              borderRadius: '6px',
+                              borderColor: '#fecaca', 
+                              color: '#dc2626', 
+                              background: '#fef2f2' 
+                            }} 
+                            onClick={() => handleDeleteOption(option.id)}
+                            title="Delete option"
+                          >
+                            <Trash2 size={12} /> Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Attributes Content Area */}
+                      <div style={{ padding: '14px 18px' }}>
+                        {attrsCount === 0 ? (
+                          <div style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic', padding: '8px 0' }}>
+                            No dynamic attributes assigned. Click "Edit" to configure values.
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
+                            gap: '10px' 
+                          }}>
+                            {option.attributes?.map((attr: any) => {
+                              const hasDimensions = (Number(attr.horizontal) > 0 && Number(attr.vertical) > 0);
+                              const isMarkupPositive = Number(attr.priceMarkup) > 0;
+
+                              return (
+                                <div 
+                                  key={attr.id} 
+                                  style={{ 
+                                    padding: '10px 12px', 
+                                    background: '#f8fafc', 
+                                    border: '1px solid #e2e8f0', 
+                                    borderRadius: '8px', 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    gap: '6px',
+                                    transition: 'all 0.15s ease',
+                                    position: 'relative'
+                                  }}
+                                >
+                                  {/* Label & Thumbnail */}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                    <span style={{ 
+                                      fontSize: '13px', 
+                                      fontWeight: '700', 
+                                      color: '#1e293b', 
+                                      overflow: 'hidden', 
+                                      textOverflow: 'ellipsis', 
+                                      whiteSpace: 'nowrap' 
+                                    }} title={attr.value}>
+                                      {attr.value}
+                                    </span>
+
+                                    {attr.imageUrl && (
+                                      <img 
+                                        src={attr.imageUrl} 
+                                        alt={attr.value} 
+                                        style={{ 
+                                          width: '20px', 
+                                          height: '20px', 
+                                          borderRadius: '4px', 
+                                          objectFit: 'cover', 
+                                          border: '1px solid #cbd5e1',
+                                          flexShrink: 0
+                                        }} 
+                                      />
+                                    )}
+                                  </div>
+
+                                  {/* Dimensions / Specs info */}
+                                  {hasDimensions ? (
+                                    <div style={{ 
+                                      fontSize: '11px', 
+                                      color: '#64748b', 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '4px' 
+                                    }}>
+                                      <span style={{ fontWeight: '500' }}>📐 {attr.horizontal} &times; {attr.vertical}</span>
+                                      <span style={{ color: '#94a3b8' }}>{attr.metric || ''}</span>
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'lowercase' }}>
+                                      {attr.metric && attr.metric !== 'none' ? `unit: ${attr.metric}` : 'standard'}
+                                    </div>
+                                  )}
+
+                                  {/* Price Tag Pill */}
+                                  <div style={{ marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                                    {attr.isBasePrice ? (
+                                      <span style={{ 
+                                        fontSize: '10px', 
+                                        fontWeight: '700', 
+                                        color: '#b45309', 
+                                        background: '#fef3c7', 
+                                        padding: '2px 7px', 
+                                        borderRadius: '6px',
+                                        border: '1px solid #fde68a'
+                                      }}>
+                                        Base: ${Number(attr.priceMarkup || 0).toFixed(2)}
+                                      </span>
+                                    ) : isMarkupPositive ? (
+                                      <span style={{ 
+                                        fontSize: '10px', 
+                                        fontWeight: '700', 
+                                        color: '#15803d', 
+                                        background: '#dcfce7', 
+                                        padding: '2px 7px', 
+                                        borderRadius: '6px',
+                                        border: '1px solid #bbf7d0'
+                                      }}>
+                                        {attr.markupType === 'PERCENTAGE' 
                                           ? `+${attr.priceMarkup}%` 
                                           : attr.markupType === 'MULTIPLY_BY_QTY'
-                                            ? `+$${Number(attr.priceMarkup).toFixed(2)} × Qty`
-                                            : `+$${Number(attr.priceMarkup).toFixed(2)}`) 
-                                      : 'Base Price')}
-                              </span>
-                            </div>
+                                            ? `+$${Number(attr.priceMarkup).toFixed(2)}/qty`
+                                            : `+$${Number(attr.priceMarkup).toFixed(2)}`}
+                                      </span>
+                                    ) : (
+                                      <span style={{ 
+                                        fontSize: '10px', 
+                                        fontWeight: '600', 
+                                        color: '#64748b', 
+                                        background: '#f1f5f9', 
+                                        padding: '2px 7px', 
+                                        borderRadius: '6px' 
+                                      }}>
+                                        Included
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
