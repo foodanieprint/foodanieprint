@@ -4,7 +4,6 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { db } from '../db.js';
 export const uploadRouter = Router();
 // Setup multer memory storage (stores file buffer in memory)
@@ -57,14 +56,14 @@ uploadRouter.post('/', upload.single('file'), async (req, res) => {
         }
         catch (configError) {
             console.warn('Firebase storage failed or not configured, falling back to local storage:', configError.message);
-            // Resolve path to backend project's sibling Next.js public/uploads folder
-            const __filename = fileURLToPath(import.meta.url);
-            const __dirname = path.dirname(__filename);
-            const uploadDir = path.join(__dirname, '..', '..', '..', 'public', 'uploads');
+            const uploadDir = path.join(process.cwd(), 'uploads');
             await fs.mkdir(uploadDir, { recursive: true });
             const filePath = path.join(uploadDir, uniqueFilename);
             await fs.writeFile(filePath, file.buffer);
-            downloadUrl = `/uploads/${uniqueFilename}`;
+            const host = req.get('host') || 'localhost:5000';
+            const isHttps = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https';
+            const protocol = isHttps ? 'https' : 'http';
+            downloadUrl = `${protocol}://${host}/uploads/${uniqueFilename}`;
         }
         return res.json({ url: downloadUrl });
     }

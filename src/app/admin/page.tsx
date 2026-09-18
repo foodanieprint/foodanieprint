@@ -489,13 +489,20 @@ export default function AdminPage() {
     try {
       const url = '/api/products';
       const method = editingProductId ? 'PUT' : 'POST';
+
+      const thumbToUse = newProdThumb || (newProdImages.length > 0 ? newProdImages[0] : '');
+      const imagesToSave = Array.from(new Set([
+        ...(thumbToUse ? [thumbToUse] : []),
+        ...newProdImages
+      ])).filter(Boolean);
+
       const bodyData = {
         id: editingProductId,
         name: newProdName,
         description: newProdDesc,
         basePrice: newProdPrice,
-        thumbnail: newProdThumb || 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=400',
-        images: newProdImages,
+        thumbnail: thumbToUse || 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=400',
+        images: imagesToSave,
         widthPx: newProdWidth,
         heightPx: newProdHeight,
         bleedMm: newProdBleed,
@@ -555,15 +562,23 @@ export default function AdminPage() {
     setNewProdName(product.name);
     setNewProdDesc(product.description);
     setNewProdPrice(product.basePrice.toString());
-    setNewProdThumb(product.thumbnail);
+    setNewProdThumb(product.thumbnail || '');
     setNewProdIsFeatured(!!product.isFeatured);
     
-    // Parse images safely
-    const gallery = Array.isArray(product.images)
-      ? product.images
-      : typeof product.images === 'string'
-        ? JSON.parse(product.images || '[]')
-        : [];
+    // Parse images safely and retain thumbnail in gallery if missing
+    let gallery: string[] = [];
+    if (Array.isArray(product.images)) {
+      gallery = [...product.images];
+    } else if (typeof product.images === 'string') {
+      try {
+        gallery = JSON.parse(product.images || '[]');
+      } catch {
+        gallery = [];
+      }
+    }
+    if (product.thumbnail && !gallery.includes(product.thumbnail)) {
+      gallery = [product.thumbnail, ...gallery];
+    }
     setNewProdImages(gallery);
 
     setNewProdWidth(product.widthPx.toString());
@@ -1811,7 +1826,7 @@ export default function AdminPage() {
                                     vertical: vert,
                                     markupType: markupType,
                                     isBasePrice: isBase,
-                                    imageUrl: img
+                                    imageUrl: img || r.imageUrl || ''
                                   };
                                   return r;
                                 });
