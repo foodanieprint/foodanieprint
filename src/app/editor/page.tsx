@@ -2710,7 +2710,13 @@ function EditorContent() {
                         'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=150'
                       ].map((url, i) => (
                         <div key={i} className="graphics-item-box" onClick={() => addImageElement(url)}>
-                          <img src={url} alt="Desk setup preset" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img 
+                            src={url} 
+                            alt="Desk setup preset" 
+                            loading="lazy"
+                            decoding="async"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          />
                         </div>
                       ))}
                     </div>
@@ -2899,7 +2905,13 @@ function EditorContent() {
                         >
                           <div style={{ height: '60px', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                             {tpl.previewUrl ? (
-                              <img src={tpl.previewUrl} alt={tpl.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <img 
+                                src={tpl.previewUrl} 
+                                alt={tpl.name} 
+                                loading="lazy"
+                                decoding="async"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              />
                             ) : (
                               <div style={{ fontSize: '20px', color: 'var(--text-muted)' }}><Columns size={20} /></div>
                             )}

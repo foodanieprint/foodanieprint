@@ -136,6 +136,8 @@ export default function HomePage() {
                     <img 
                       src={prod.thumbnail || 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=600'} 
                       alt={prod.name} 
+                      loading="lazy"
+                      decoding="async"
                       onError={(e: any) => {
                         e.target.onerror = null;
                         e.target.src = 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=600';
@@ -267,6 +269,8 @@ export default function HomePage() {
                           <img 
                             src={prod.thumbnail || 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=600'} 
                             alt={prod.name} 
+                            loading="lazy"
+                            decoding="async"
                             onError={(e: any) => {
                               e.target.onerror = null;
                               e.target.src = 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=600';

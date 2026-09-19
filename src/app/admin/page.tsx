@@ -1356,6 +1356,8 @@ export default function AdminPage() {
                       <img 
                         src={product.thumbnail} 
                         alt={product.name} 
+                        loading="lazy"
+                        decoding="async"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                       <span style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--accent-primary)', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}>

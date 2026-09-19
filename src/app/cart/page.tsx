@@ -86,6 +86,8 @@ export default function CartPage() {
                       <img 
                         src={item.thumbnail} 
                         alt={item.productName} 
+                        loading="lazy"
+                        decoding="async"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     </div>
