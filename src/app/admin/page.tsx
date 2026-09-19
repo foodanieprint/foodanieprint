@@ -7,7 +7,7 @@ import {
   Shield, BarChart3, ShoppingBag, FolderPlus, Download, 
   RefreshCw, CheckCircle, Truck, Package, ArrowLeft,
   Plus, Trash2, HelpCircle, Palette, Edit, Upload, GripVertical, Settings, ArrowRight, Sliders,
-  Layers, Tag, Sparkles
+  Layers, Tag, Sparkles, Copy
 } from 'lucide-react';
 import { getCanvasDimensions } from '@/lib/canvasUtils';
 
@@ -640,6 +640,27 @@ export default function AdminPage() {
       } else {
         const data = await res.json();
         alert(data.error || 'Error deleting product');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error communicating with catalog database');
+    }
+  };
+
+  // 8b. Duplicar producto base
+  const handleDuplicateProduct = async (productId: string) => {
+    try {
+      const res = await fetch('/api/products/duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: productId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Product successfully duplicated as "${data.name}"!`);
+        loadAdminData();
+      } else {
+        alert(data.error || 'Error duplicating product');
       }
     } catch (err) {
       console.error(err);
@@ -1364,17 +1385,25 @@ export default function AdminPage() {
                       </div>
 
                       {/* Actions */}
-                      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', alignItems: 'center' }}>
                         <button 
                           className="btn btn-secondary btn-sm" 
-                          style={{ flex: 1, padding: '8px 12px', display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}
+                          style={{ flex: 1, padding: '8px 10px', display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center', fontSize: '12px', fontWeight: '600' }}
                           onClick={() => handleEditProductClick(product)}
                         >
-                          <Edit size={12} /> Edit Details
+                          <Edit size={13} /> Edit Details
                         </button>
                         <button 
                           className="btn btn-secondary btn-sm" 
-                          style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', padding: '8px' }}
+                          style={{ padding: '8px 10px', display: 'flex', gap: '5px', alignItems: 'center', fontSize: '12px', fontWeight: '600', color: 'var(--accent-primary)', borderColor: 'rgba(0, 111, 66, 0.25)', background: 'rgba(0, 111, 66, 0.04)' }}
+                          onClick={() => handleDuplicateProduct(product.id)}
+                          title="Duplicate this product and all its specifications"
+                        >
+                          <Copy size={13} /> Duplicate
+                        </button>
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           onClick={() => handleDeleteProduct(product.id)}
                           title="Delete Product"
                         >

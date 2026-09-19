@@ -515,6 +515,28 @@ export const mockDb = {
         }
         return false;
     },
+    duplicateProduct: (id) => {
+        const original = MOCK_PRODUCTS.find(p => p.id === id);
+        if (!original)
+            return null;
+        const newId = `prod-${Date.now()}`;
+        const newName = `${original.name} (Copy)`;
+        const newSlug = `${original.slug}-copy-${Date.now().toString().slice(-4)}`;
+        const copy = {
+            ...JSON.parse(JSON.stringify(original)),
+            id: newId,
+            name: newName,
+            slug: newSlug,
+            isFeatured: false,
+            specs: (original.specs || []).map((s, idx) => ({
+                ...s,
+                id: `spec-${newId}-${idx}`,
+                productId: newId
+            }))
+        };
+        MOCK_PRODUCTS.unshift(copy);
+        return copy;
+    },
     getGlobalOptions: () => MOCK_GLOBAL_OPTIONS,
     saveGlobalOption: (data) => {
         if (data.id) {

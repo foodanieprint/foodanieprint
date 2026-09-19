@@ -385,3 +385,94 @@ productsRouter.delete('/', async (req: AuthenticatedRequest, res: Response) => {
     return res.status(500).json({ error: 'Internal server error while deleting product' });
   }
 });
+
+// POST: Duplicate an existing product with all its specs (Admin Only)
+productsRouter.post('/duplicate', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Unauthorized. Admin permissions required.' });
+    }
+
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({ error: 'Product ID is required for duplication' });
+    }
+
+    try {
+      const original = await db.product.findUnique({
+        where: { id },
+        include: { specs: true }
+      });
+
+      if (!original) {
+        return res.status(404).json({ error: 'Original product not found' });
+      }
+
+      // Generate unique name and slug
+      const newName = `${original.name} (Copy)`;
+      const timestamp = Date.now().toString().slice(-4);
+      let newSlug = `${original.slug}-copy-${timestamp}`;
+
+      // Ensure slug uniqueness
+      const existingWithSlug = await db.product.findUnique({ where: { slug: newSlug } });
+      if (existingWithSlug) {
+        newSlug = `${original.slug}-copy-${Date.now()}`;
+      }
+
+      // Clone product in transaction
+      const duplicated = await db.$transaction(async (tx: any) => {
+        const newProd = await tx.product.create({
+          data: {
+            name: newName,
+            slug: newSlug,
+            description: original.description || '',
+            basePrice: original.basePrice,
+            thumbnail: original.thumbnail,
+            images: original.images || [],
+            widthPx: original.widthPx,
+            heightPx: original.heightPx,
+            bleedMm: original.bleedMm,
+            dpi: original.dpi,
+            globalOptionIds: original.globalOptionIds || [],
+            categoryId: original.categoryId || null,
+            isFeatured: false // Reset featured flag on duplicated product
+          }
+        });
+
+        if (original.specs && original.specs.length > 0) {
+          await tx.productSpec.createMany({
+            data: original.specs.map((s: any, idx: number) => ({
+              productId: newProd.id,
+              group: s.group,
+              value: s.value,
+              priceMarkup: s.priceMarkup,
+              markupType: s.markupType || 'FLAT',
+              isBasePrice: s.isBasePrice ?? false,
+              imageUrl: s.imageUrl || null,
+              position: typeof s.position === 'number' ? s.position : idx,
+              horizontal: typeof s.horizontal === 'number' ? s.horizontal : 0,
+              vertical: typeof s.vertical === 'number' ? s.vertical : 0
+            }))
+          });
+        }
+
+        return tx.product.findUnique({
+          where: { id: newProd.id },
+          include: { specs: true }
+        });
+      });
+
+      return res.status(201).json(duplicated);
+    } catch (dbError) {
+      console.warn('PostgreSQL offline al duplicar producto. Usando fallback en memoria...', dbError);
+      const duplicatedMock = mockDb.duplicateProduct(id);
+      if (!duplicatedMock) {
+        return res.status(404).json({ error: 'Product not found in mock store' });
+      }
+      return res.status(201).json(duplicatedMock);
+    }
+  } catch (error: any) {
+    console.error('Error al duplicar producto:', error);
+    return res.status(500).json({ error: 'Internal server error while duplicating product' });
+  }
+});
