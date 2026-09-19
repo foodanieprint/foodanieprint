@@ -293,10 +293,10 @@ function ProductDetailContent() {
 
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Main Image Container */}
+                  {/* Main Image Container (Square 1:1 Aspect Ratio) */}
                   <div style={{ 
                     width: '100%', 
-                    height: '420px', 
+                    aspectRatio: '1 / 1', 
                     borderRadius: '24px', 
                     overflow: 'hidden', 
                     border: '1px solid var(--border-color)', 
@@ -316,7 +316,7 @@ function ProductDetailContent() {
                       style={{ 
                         width: '100%', 
                         height: '100%', 
-                        objectFit: 'cover',
+                        objectFit: 'contain',
                         transition: 'all 0.3s ease'
                       }}
                     />
