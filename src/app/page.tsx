@@ -125,28 +125,36 @@ export default function HomePage() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '32px' }}>
               {products.filter((p: any) => p.isFeatured).map((prod) => (
-                <div key={prod.id} className="glass-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+                <div key={prod.id} className="glass-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}>
                   {/* Top Rated Badge */}
                   <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'var(--accent-orange)', color: '#ffffff', fontSize: '11px', fontWeight: 'bold', padding: '4px 8px', borderRadius: 'var(--radius-sm)', zIndex: 10 }}>
                     ★ TOP RATED
                   </div>
                   
-                  {/* Cover Image */}
-                  <div style={{ height: '200px', width: '100%', position: 'relative', overflow: 'hidden' }}>
+                  {/* Clickable Cover Image */}
+                  <Link href={`/products/${prod.slug}`} style={{ height: '200px', width: '100%', position: 'relative', overflow: 'hidden', display: 'block', cursor: 'pointer' }}>
                     <img 
-                      src={prod.thumbnail} 
+                      src={prod.thumbnail || 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=600'} 
                       alt={prod.name} 
+                      onError={(e: any) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=600';
+                      }}
                       style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }} 
                       className="prod-img"
                     />
                     <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(11, 13, 23, 0.85)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 'bold', color: 'var(--accent-secondary)', border: '1px solid var(--border-color)', zIndex: 10 }}>
                       From ${prod.basePrice.toFixed(2)}
                     </div>
-                  </div>
+                  </Link>
 
                   {/* Details */}
                   <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <h3 style={{ fontSize: '20px', marginBottom: '10px' }}>{prod.name}</h3>
+                    <Link href={`/products/${prod.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <h3 style={{ fontSize: '20px', marginBottom: '10px', transition: 'color 0.2s ease', cursor: 'pointer' }} onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'inherit')}>
+                        {prod.name}
+                      </h3>
+                    </Link>
                     <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px', flex: 1 }}>
                       {prod.description}
                     </p>
@@ -253,23 +261,31 @@ export default function HomePage() {
 
                   if (filteredProducts.length > 0) {
                     return filteredProducts.map((prod) => (
-                      <div key={prod.id} className="glass-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                        {/* Cover Image */}
-                        <div style={{ height: '200px', width: '100%', position: 'relative', overflow: 'hidden' }}>
+                      <div key={prod.id} className="glass-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}>
+                        {/* Clickable Cover Image */}
+                        <Link href={`/products/${prod.slug}`} style={{ height: '200px', width: '100%', position: 'relative', overflow: 'hidden', display: 'block', cursor: 'pointer' }}>
                           <img 
-                            src={prod.thumbnail} 
+                            src={prod.thumbnail || 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=600'} 
                             alt={prod.name} 
+                            onError={(e: any) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&q=80&w=600';
+                            }}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }} 
                             className="prod-img"
                           />
                           <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(11, 13, 23, 0.85)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 'bold', color: 'var(--accent-secondary)', border: '1px solid var(--border-color)' }}>
                             From ${prod.basePrice.toFixed(2)}
                           </div>
-                        </div>
+                        </Link>
 
                         {/* Details */}
                         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                          <h3 style={{ fontSize: '20px', marginBottom: '10px' }}>{prod.name}</h3>
+                          <Link href={`/products/${prod.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <h3 style={{ fontSize: '20px', marginBottom: '10px', transition: 'color 0.2s ease', cursor: 'pointer' }} onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent-primary)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'inherit')}>
+                              {prod.name}
+                            </h3>
+                          </Link>
                           <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px', flex: 1 }}>
                             {prod.description}
                           </p>
