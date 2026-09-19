@@ -12,6 +12,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify
 } from 'lucide-react';
 import { getCanvasDimensions } from '@/lib/canvasUtils';
+import { calculateDynamicPrice } from '@/lib/pricingUtils';
 
 interface CanvasElement {
   id: string;
@@ -402,49 +403,8 @@ function EditorContent() {
   // 2. Calcular precio dinámico según especificaciones elegidas
   useEffect(() => {
     if (!product) return;
-    
-    // Determinar primero si hay alguna especificación que reemplaza el precio base
-    let basePrice = product.basePrice;
-    Object.entries(selectedSpecs).forEach(([group, value]) => {
-      const match = product.specs.find((s: any) => s.group === group && s.value === value);
-      if (match && match.isBasePrice) {
-        basePrice = match.priceMarkup;
-      }
-    });
-
-    // Determinar cantidad actual desde las especificaciones para multiplicadores
-    let specQty = 1;
-    let hasQtySpec = false;
-    Object.entries(selectedSpecs).forEach(([k, v]: [string, any]) => {
-      if (k.toLowerCase().includes('quantity') || k.toLowerCase().includes('cantidad') || k.toLowerCase() === 'qty') {
-        const parsed = parseInt(v.replace(/[^0-9]/g, ''), 10);
-        if (!isNaN(parsed) && parsed > 0) {
-          specQty = parsed;
-          hasQtySpec = true;
-        }
-      }
-    });
-    const currentQuantity = hasQtySpec ? specQty : quantity;
-
-    let currentPrice = basePrice;
-    
-    // Sumar recargo de especificaciones
-    Object.entries(selectedSpecs).forEach(([group, value]) => {
-      const match = product.specs.find((s: any) => s.group === group && s.value === value);
-      if (match) {
-        // Si esta especificación es la que define el precio base, no la sumamos otra vez
-        if (match.isBasePrice) return;
-
-        const actualMarkup = match.markupType === 'PERCENTAGE'
-          ? (basePrice * match.priceMarkup) / 100
-          : match.markupType === 'MULTIPLY_BY_QTY'
-            ? match.priceMarkup * currentQuantity
-            : match.priceMarkup;
-        currentPrice += actualMarkup;
-      }
-    });
-
-    setTotalPrice(currentPrice);
+    const { unitPrice: calculatedPrice } = calculateDynamicPrice(product, selectedSpecs, quantity);
+    setTotalPrice(calculatedPrice);
   }, [product, selectedSpecs, quantity]);
 
   // Helper to dynamically auto-fit canvas inside workspace viewport

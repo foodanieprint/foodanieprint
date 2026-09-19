@@ -7,6 +7,7 @@ import {
   Flame, Award, ArrowLeft, Paintbrush, Upload, CheckCircle2, ShieldCheck, HelpCircle, ChevronDown,
   ShoppingCart, X
 } from 'lucide-react';
+import { calculateDynamicPrice } from '@/lib/pricingUtils';
 
 function ProductDetailContent() {
   const params = useParams();
@@ -159,46 +160,8 @@ function ProductDetailContent() {
   // Recalcular precio unitario al cambiar especificaciones
   useEffect(() => {
     if (!product) return;
-    
-    // Determinar primero si hay alguna especificación que reemplaza el precio base
-    let basePrice = product.basePrice;
-    Object.entries(selectedSpecs).forEach(([group, value]) => {
-      const match = product.specs.find((s: any) => s.group === group && s.value === value);
-      if (match && match.isBasePrice) {
-        basePrice = match.priceMarkup;
-      }
-    });
-
-    // Determinar cantidad actual desde las especificaciones para multiplicadores
-    let specQty = 1;
-    let hasQtySpec = false;
-    Object.entries(selectedSpecs).forEach(([k, v]: [string, any]) => {
-      if (k.toLowerCase().includes('quantity') || k.toLowerCase().includes('cantidad') || k.toLowerCase() === 'qty') {
-        const parsed = parseInt(v.replace(/[^0-9]/g, ''), 10);
-        if (!isNaN(parsed) && parsed > 0) {
-          specQty = parsed;
-          hasQtySpec = true;
-        }
-      }
-    });
-    const currentQuantity = specQty;
-
-    let price = basePrice;
-    Object.entries(selectedSpecs).forEach(([group, value]) => {
-      const match = product.specs.find((s: any) => s.group === group && s.value === value);
-      if (match) {
-        // Si esta especificación es la que define el precio base, no la sumamos otra vez
-        if (match.isBasePrice) return;
-
-        const actualMarkup = match.markupType === 'PERCENTAGE'
-          ? (basePrice * match.priceMarkup) / 100
-          : match.markupType === 'MULTIPLY_BY_QTY'
-            ? match.priceMarkup * currentQuantity
-            : match.priceMarkup;
-        price += actualMarkup;
-      }
-    });
-    setUnitPrice(price);
+    const { unitPrice: calculatedPrice } = calculateDynamicPrice(product, selectedSpecs);
+    setUnitPrice(calculatedPrice);
   }, [selectedSpecs, product]);
 
   const handleAddToCart = () => {
@@ -770,11 +733,12 @@ function ProductDetailContent() {
                           >
                             {specsList.map((spec: any) => {
                               const isSelected = selectedValue === spec.value;
-                              const actualMarkup = spec.markupType === 'PERCENTAGE'
-                                ? (product.basePrice * spec.priceMarkup) / 100
-                                : spec.priceMarkup;
-                              const markupText = spec.priceMarkup > 0 
-                                ? `(+$${actualMarkup.toFixed(2)})` 
+                              // Calculate difference if this spec were chosen
+                              const hypotheticalSpecs = { ...selectedSpecs, [group]: spec.value };
+                              const hypotheticalPrice = calculateDynamicPrice(product, hypotheticalSpecs).unitPrice;
+                              const diff = hypotheticalPrice - unitPrice;
+                              const markupText = !isSelected && Math.abs(diff) >= 0.01
+                                ? (diff > 0 ? `(+$${diff.toFixed(2)})` : `(-$${Math.abs(diff).toFixed(2)})`)
                                 : '';
                               return (
                                 <div
@@ -812,6 +776,11 @@ function ProductDetailContent() {
                                   }}
                                 >
                                   <span>{spec.value}</span>
+                                  {markupText && (
+                                    <span style={{ fontSize: '12px', fontWeight: '600', color: markupText.startsWith('(+-') || markupText.startsWith('(-') ? '#0284c7' : '#16a34a' }}>
+                                      {markupText}
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })}
