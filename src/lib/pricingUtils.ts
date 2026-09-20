@@ -1,5 +1,6 @@
 /**
- * Utility functions for calculating dynamic prices based on dimensions, area, and printing factors.
+ * Utility functions for calculating dynamic prices based on dimensions, area, 
+ * printing factors, and multi-dimensional Pricing Matrix (SinaLite model).
  */
 
 export interface DimensionParseResult {
@@ -7,6 +8,12 @@ export interface DimensionParseResult {
   height: number;
   area: number;
   unit: 'in' | 'cm' | 'mm' | 'px';
+}
+
+export interface PricingMatrixRow {
+  id?: string;
+  specs: Record<string, string>; // e.g. { "Size": "4x6", "Qty": "100", "Sides": "Front", "Turnaround": "3 Business Day" }
+  price: number;                 // e.g. 10.00
 }
 
 /**
@@ -62,18 +69,91 @@ export function parseDimensions(valueStr: string, horizontal?: number, vertical?
 }
 
 /**
- * Calculates dynamic price based on product base price, base size, and selected specs.
- * Uses the proportional area formula calibrated for commercial printing:
- * Factor = 1 + (SelectedArea / BaseArea - 1) * MaterialWeightFactor (default 0.75)
+ * Normalizes a string for matrix key comparison (case-insensitive, trims extra spaces and quotes).
+ */
+function normalizeVal(val: any): string {
+  if (val === null || val === undefined) return '';
+  return String(val).toLowerCase().replace(/["']/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Look up in a product's pricingMatrix for a matching row.
+ * Returns the matched price, or null if no match found.
+ */
+export function lookupPricingMatrix(
+  pricingMatrix: any,
+  selectedSpecs: Record<string, string>
+): number | null {
+  if (!pricingMatrix) return null;
+
+  let rows: PricingMatrixRow[] = [];
+  if (Array.isArray(pricingMatrix)) {
+    rows = pricingMatrix;
+  } else if (typeof pricingMatrix === 'string') {
+    try {
+      const parsed = JSON.parse(pricingMatrix);
+      if (Array.isArray(parsed)) rows = parsed;
+    } catch {
+      return null;
+    }
+  } else if (typeof pricingMatrix === 'object' && Array.isArray(pricingMatrix.rows)) {
+    rows = pricingMatrix.rows;
+  }
+
+  if (rows.length === 0) return null;
+
+  // Find exact or best matching row
+  // A row matches if every key specified in row.specs matches the selectedSpecs
+  const match = rows.find((row) => {
+    if (!row.specs || typeof row.specs !== 'object') return false;
+    const requiredSpecs = Object.entries(row.specs);
+    if (requiredSpecs.length === 0) return false;
+
+    return requiredSpecs.every(([reqGroup, reqVal]) => {
+      // Find matching group in selectedSpecs (case-insensitive)
+      const selectedKey = Object.keys(selectedSpecs).find(
+        (k) => normalizeVal(k) === normalizeVal(reqGroup)
+      );
+      if (!selectedKey) return false;
+      const actualVal = selectedSpecs[selectedKey];
+      return normalizeVal(actualVal) === normalizeVal(reqVal);
+    });
+  });
+
+  if (match && typeof match.price === 'number') {
+    return match.price;
+  }
+
+  return null;
+}
+
+/**
+ * Calculates dynamic price based on:
+ * 1. Multi-dimensional Pricing Matrix (SinaLite Combinatorial Grid) if configured.
+ * 2. Proportional Area Formula (Fallback if multi-size without matrix).
+ * 3. Base Price + ProductSpecs Markups.
  */
 export function calculateDynamicPrice(
   product: any,
   selectedSpecs: Record<string, string>,
   quantity: number = 1
-): { unitPrice: number; baseCalculatedPrice: number; sizeMarkup: number } {
-  if (!product) return { unitPrice: 0, baseCalculatedPrice: 0, sizeMarkup: 0 };
+): { unitPrice: number; baseCalculatedPrice: number; sizeMarkup: number; isMatrixMatch: boolean } {
+  if (!product) return { unitPrice: 0, baseCalculatedPrice: 0, sizeMarkup: 0, isMatrixMatch: false };
 
-  // 1. Initial base price
+  // PRIORITY 1: Multi-Dimensional Pricing Matrix
+  if (product.pricingMatrix) {
+    const matrixPrice = lookupPricingMatrix(product.pricingMatrix, selectedSpecs);
+    if (matrixPrice !== null && matrixPrice >= 0) {
+      return {
+        unitPrice: matrixPrice,
+        baseCalculatedPrice: matrixPrice,
+        sizeMarkup: 0,
+        isMatrixMatch: true,
+      };
+    }
+  }
+
+  // PRIORITY 2: Dynamic Proportional / Option-based calculation
   let basePrice = Number(product.basePrice) || 0;
 
   // Check if any selected attribute defines isBasePrice
@@ -84,9 +164,13 @@ export function calculateDynamicPrice(
     }
   });
 
-  // 2. Detect Size specs
+  // Detect Size specs
   const sizeGroupKey = Object.keys(selectedSpecs).find(
-    k => k.toLowerCase() === 'size' || k.toLowerCase() === 'tamaño' || k.toLowerCase() === 'tamano' || k.toLowerCase() === 'dimensions'
+    (k) =>
+      k.toLowerCase() === 'size' ||
+      k.toLowerCase() === 'tamaño' ||
+      k.toLowerCase() === 'tamano' ||
+      k.toLowerCase() === 'dimensions'
   );
 
   let sizeMarkup = 0;
@@ -97,13 +181,9 @@ export function calculateDynamicPrice(
     const sizeSpecsList = product.specs?.filter((s: any) => s.group === sizeGroupKey) || [];
     const currentSpec = sizeSpecsList.find((s: any) => s.value === selectedSizeVal);
 
-    // If current spec has explicit markup configured (and it's not 0 or is percentage/flat override)
-    // and user intentionally configured markup in admin, we honor manual markup if specified.
-    // However, if manual markup is 0 or user relies on automatic sizing:
     const hasManualMarkup = currentSpec && Number(currentSpec.priceMarkup) > 0;
 
     if (!hasManualMarkup && sizeSpecsList.length > 1) {
-      // Find the base (smallest or reference) size spec
       const parsedSizes = sizeSpecsList
         .map((spec: any) => ({
           spec,
@@ -112,7 +192,6 @@ export function calculateDynamicPrice(
         .filter((item: any) => item.dims !== null);
 
       if (parsedSizes.length > 1) {
-        // Find smallest area as the reference base
         parsedSizes.sort((a: any, b: any) => a.dims.area - b.dims.area);
         const baseSizeItem = parsedSizes[0];
         const currentDims = parseDimensions(
@@ -125,7 +204,6 @@ export function calculateDynamicPrice(
         if (currentDims && baseSizeItem.dims.area > 0) {
           const areaRatio = currentDims.area / baseSizeItem.dims.area;
           if (areaRatio > 1.0) {
-            // Standard industrial scale factor (0.75 accounts for shared machine make-ready / cutting overhead)
             const scaleFactor = 1 + (areaRatio - 1) * 0.75;
             sizeMarkup = basePrice * (scaleFactor - 1);
             sizeFoundAndParsed = true;
@@ -135,7 +213,7 @@ export function calculateDynamicPrice(
     }
   }
 
-  // 3. Current quantity from specs (e.g. Qty: 500) or argument
+  // Detect quantity
   let specQty = 1;
   let hasQtySpec = false;
   Object.entries(selectedSpecs).forEach(([k, v]) => {
@@ -149,7 +227,7 @@ export function calculateDynamicPrice(
   });
   const activeQty = hasQtySpec ? specQty : quantity;
 
-  // 4. Sum other specifications markups
+  // Sum other specifications markups
   let otherMarkups = 0;
   const baseForMarkup = basePrice + sizeMarkup;
 
@@ -157,7 +235,6 @@ export function calculateDynamicPrice(
     const match = product.specs?.find((s: any) => s.group === group && s.value === value);
     if (match) {
       if (match.isBasePrice) return;
-      // If this was the size group and was calculated via area ratio, skip double adding
       if (sizeFoundAndParsed && (group.toLowerCase() === 'size' || group.toLowerCase() === 'tamaño')) return;
 
       const markup = Number(match.priceMarkup) || 0;
@@ -177,5 +254,6 @@ export function calculateDynamicPrice(
     unitPrice: Math.max(0, finalUnitPrice),
     baseCalculatedPrice: basePrice,
     sizeMarkup,
+    isMatrixMatch: false,
   };
 }

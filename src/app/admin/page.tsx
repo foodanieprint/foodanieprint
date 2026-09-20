@@ -136,6 +136,10 @@ export default function AdminPage() {
     { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
   ]);
 
+  // Matriz de precios multidimensional (SinaLite Grid)
+  const [newProdPricingMatrix, setNewProdPricingMatrix] = useState<Array<{ id?: string; specs: Record<string, string>; price: string }>>([]);
+  const [showPricingMatrixSection, setShowPricingMatrixSection] = useState(false);
+
   // Estado del creador de Global Options & Attributes
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
   const [newOptionName, setNewOptionName] = useState('');
@@ -513,6 +517,7 @@ export default function AdminPage() {
           vertical: parseFloat(spec.vertical || '0') || 0,
         })),
         globalOptionIds: selectedGlobalOptionIds,
+        pricingMatrix: newProdPricingMatrix.length > 0 ? newProdPricingMatrix.map(r => ({ specs: r.specs, price: parseFloat(r.price) || 0 })) : null,
         categoryId: newProdCategoryId || null,
         isFeatured: newProdIsFeatured
       };
@@ -540,6 +545,8 @@ export default function AdminPage() {
         setNewProdIsFeatured(false);
         setNewProdCategoryId('');
         setSelectedGlobalOptionIds([]);
+        setNewProdPricingMatrix([]);
+        setShowPricingMatrixSection(false);
         setNewProdSpecs([
           { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
           { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
@@ -601,6 +608,31 @@ export default function AdminPage() {
     }));
     setNewProdSpecs(mappedSpecs);
     
+    // Load pricing matrix if present
+    let matrixRows: any[] = [];
+    if (Array.isArray(product.pricingMatrix)) {
+      matrixRows = product.pricingMatrix.map((r: any, idx: number) => ({
+        id: r.id || `row-${idx}`,
+        specs: r.specs || {},
+        price: r.price !== undefined ? String(r.price) : '0'
+      }));
+    } else if (typeof product.pricingMatrix === 'string') {
+      try {
+        const parsed = JSON.parse(product.pricingMatrix);
+        if (Array.isArray(parsed)) {
+          matrixRows = parsed.map((r: any, idx: number) => ({
+            id: r.id || `row-${idx}`,
+            specs: r.specs || {},
+            price: r.price !== undefined ? String(r.price) : '0'
+          }));
+        }
+      } catch {
+        matrixRows = [];
+      }
+    }
+    setNewProdPricingMatrix(matrixRows);
+    setShowPricingMatrixSection(matrixRows.length > 0);
+
     setEditingProductId(product.id);
     setActiveTab('create-product');
   };
@@ -619,6 +651,8 @@ export default function AdminPage() {
     setNewProdDpi('');
     setNewProdCategoryId('');
     setSelectedGlobalOptionIds([]);
+    setNewProdPricingMatrix([]);
+    setShowPricingMatrixSection(false);
     setNewProdSpecs([
       { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
       { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
@@ -1977,6 +2011,192 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* SECCIÓN MATRIZ DE PRECIOS MULTIDIMENSIONAL (SinaLite Grid) */}
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', color: 'var(--text-primary)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>📊 Multi-Dimensional Pricing Matrix</span>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', background: 'rgba(0,111,66,0.1)', color: 'var(--accent-primary)', padding: '2px 8px', borderRadius: '12px' }}>
+                        SinaLite Model
+                      </span>
+                    </h4>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                      Define exact total prices for combinations of dependent variables (e.g. Size + Qty + Sides + Turnaround).
+                    </p>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setShowPricingMatrixSection(!showPricingMatrixSection)}
+                    >
+                      {showPricingMatrixSection ? 'Hide Matrix' : 'Configure Matrix'}
+                    </button>
+                    {showPricingMatrixSection && (
+                      <button 
+                        type="button" 
+                        className="btn btn-primary btn-sm" 
+                        onClick={() => {
+                          // Extract unique groups from current specs to pre-populate row keys
+                          const distinctGroups = Array.from(new Set(newProdSpecs.map(s => s.group))).filter(Boolean);
+                          const initialRowSpecs: Record<string, string> = {};
+                          distinctGroups.forEach(g => {
+                            const firstVal = newProdSpecs.find(s => s.group === g)?.value || '';
+                            initialRowSpecs[g] = firstVal;
+                          });
+                          setNewProdPricingMatrix([
+                            ...newProdPricingMatrix,
+                            { id: `matrix-row-${Date.now()}`, specs: initialRowSpecs, price: '10.00' }
+                          ]);
+                        }}
+                      >
+                        <Plus size={12} /> Add Combination Row
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {showPricingMatrixSection && (
+                  <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '16px' }}>
+                    {/* Quick helper tip */}
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(14, 165, 233, 0.2)', padding: '10px 14px', borderRadius: '6px' }}>
+                      💡 <strong>How it works:</strong> Each row defines an exact final price when the client selects that specific combination of Size, Qty, Sides, etc. If a selection matches a matrix row, the matrix price overrides default sums.
+                    </div>
+
+                    {newProdPricingMatrix.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                        No combination rows added yet. Click <strong>"Add Combination Row"</strong> or <strong>"Load Sample SinaLite Postcard Matrix"</strong> to start.
+                        <div style={{ marginTop: '12px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => {
+                              // Load user's exact Postcard 16pt sample
+                              const sampleRows = [
+                                { id: 'm1', specs: { Size: '4x6', Quantity: '100', Sides: 'Front', Turnaround: '3 Business Day' }, price: '10' },
+                                { id: 'm2', specs: { Size: '4x6', Quantity: '100', Sides: 'Front', Turnaround: '1 Business Day' }, price: '15' },
+                                { id: 'm3', specs: { Size: '4x6', Quantity: '100', Sides: 'Front & Back', Turnaround: '3 Business Day' }, price: '25' },
+                                { id: 'm4', specs: { Size: '4x6', Quantity: '100', Sides: 'Front & Back', Turnaround: '1 Business Day' }, price: '30' },
+                                { id: 'm5', specs: { Size: '4x6', Quantity: '200', Sides: 'Front', Turnaround: '3 Business Day' }, price: '30' },
+                                { id: 'm6', specs: { Size: '4x6', Quantity: '200', Sides: 'Front', Turnaround: '1 Business Day' }, price: '40' },
+                                { id: 'm7', specs: { Size: '4x6', Quantity: '200', Sides: 'Front & Back', Turnaround: '3 Business Day' }, price: '50' },
+                                { id: 'm8', specs: { Size: '4x6', Quantity: '200', Sides: 'Front & Back', Turnaround: '1 Business Day' }, price: '60' },
+                                { id: 'm9', specs: { Size: '5x7', Quantity: '100', Sides: 'Front', Turnaround: '3 Business Day' }, price: '20' },
+                                { id: 'm10', specs: { Size: '5x7', Quantity: '100', Sides: 'Front', Turnaround: '1 Business Day' }, price: '30' },
+                                { id: 'm11', specs: { Size: '5x7', Quantity: '100', Sides: 'Front & Back', Turnaround: '3 Business Day' }, price: '35' },
+                                { id: 'm12', specs: { Size: '5x7', Quantity: '100', Sides: 'Front & Back', Turnaround: '1 Business Day' }, price: '45' },
+                                { id: 'm13', specs: { Size: '5x7', Quantity: '200', Sides: 'Front', Turnaround: '3 Business Day' }, price: '40' },
+                                { id: 'm14', specs: { Size: '5x7', Quantity: '200', Sides: 'Front', Turnaround: '1 Business Day' }, price: '50' },
+                                { id: 'm15', specs: { Size: '5x7', Quantity: '200', Sides: 'Front & Back', Turnaround: '3 Business Day' }, price: '60' },
+                                { id: 'm16', specs: { Size: '5x7', Quantity: '200', Sides: 'Front & Back', Turnaround: '1 Business Day' }, price: '70' },
+                              ];
+                              setNewProdPricingMatrix(sampleRows);
+                            }}
+                          >
+                            ⚡ Load Sample SinaLite Postcard Matrix (4x6 & 5x7)
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+                        {newProdPricingMatrix.map((row, rIdx) => {
+                          const specKeys = Object.keys(row.specs);
+                          return (
+                            <div 
+                              key={row.id || rIdx} 
+                              style={{ 
+                                display: 'flex', 
+                                gap: '10px', 
+                                alignItems: 'center', 
+                                background: '#ffffff', 
+                                padding: '10px 14px', 
+                                borderRadius: '6px', 
+                                border: '1px solid var(--border-color)',
+                                flexWrap: 'wrap'
+                              }}
+                            >
+                              <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', width: '28px' }}>
+                                #{rIdx + 1}
+                              </div>
+
+                              {/* Specs tags / inputs for each group */}
+                              <div style={{ display: 'flex', gap: '8px', flex: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                                {specKeys.map((k) => (
+                                  <div key={k} style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: '700', padding: '4px 8px', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.03)', borderRight: '1px solid var(--border-color)' }}>
+                                      {k}
+                                    </span>
+                                    <input 
+                                      type="text" 
+                                      value={row.specs[k] || ''} 
+                                      onChange={(e) => {
+                                        const updatedSpecs = { ...row.specs, [k]: e.target.value };
+                                        const updated = [...newProdPricingMatrix];
+                                        updated[rIdx] = { ...updated[rIdx], specs: updatedSpecs };
+                                        setNewProdPricingMatrix(updated);
+                                      }}
+                                      style={{ border: 'none', background: 'transparent', padding: '4px 8px', fontSize: '12px', color: 'var(--text-primary)', outline: 'none', width: '100px' }}
+                                    />
+                                  </div>
+                                ))}
+
+                                {/* Add new spec key to this row */}
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    const keyName = prompt('Enter option group name for this condition (e.g. Coating, Sides, Qty):');
+                                    if (keyName && keyName.trim()) {
+                                      const updatedSpecs = { ...row.specs, [keyName.trim()]: '' };
+                                      const updated = [...newProdPricingMatrix];
+                                      updated[rIdx] = { ...updated[rIdx], specs: updatedSpecs };
+                                      setNewProdPricingMatrix(updated);
+                                    }
+                                  }}
+                                  style={{ fontSize: '11px', padding: '4px 8px', background: 'transparent', border: '1px dashed var(--border-color)', borderRadius: '4px', color: 'var(--accent-primary)', cursor: 'pointer' }}
+                                  title="Add another condition column to this row"
+                                >
+                                  + Option
+                                </button>
+                              </div>
+
+                              {/* Price Field */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '140px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>$</span>
+                                <input 
+                                  type="number" 
+                                  step="0.01" 
+                                  className="input-field" 
+                                  value={row.price} 
+                                  onChange={(e) => {
+                                    const updated = [...newProdPricingMatrix];
+                                    updated[rIdx] = { ...updated[rIdx], price: e.target.value };
+                                    setNewProdPricingMatrix(updated);
+                                  }}
+                                  placeholder="Final Price"
+                                  style={{ padding: '6px 8px', fontWeight: '700', color: '#15803d' }}
+                                />
+                              </div>
+
+                              {/* Delete Row */}
+                              <button 
+                                type="button" 
+                                onClick={() => setNewProdPricingMatrix(newProdPricingMatrix.filter((_, i) => i !== rIdx))}
+                                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
+                                title="Delete row"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
 

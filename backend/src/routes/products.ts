@@ -164,7 +164,7 @@ productsRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(403).json({ error: 'Unauthorized. Admin permissions required.' });
     }
 
-    const { name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId, isFeatured } = req.body;
+    const { name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, pricingMatrix, categoryId, isFeatured } = req.body;
 
     if (!name || !basePrice || !thumbnail || !widthPx || !heightPx) {
       return res.status(400).json({ error: 'Missing mandatory fields' });
@@ -200,6 +200,7 @@ productsRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
             bleedMm: parseFloat(bleedMm || '0'),
             dpi: dpi ? parseInt(dpi) : null,
             globalOptionIds: globalOptionIds || [],
+            pricingMatrix: pricingMatrix || null,
             categoryId: categoryId || null,
             isFeatured: !!isFeatured
           },
@@ -244,6 +245,7 @@ productsRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
         bleedMm,
         specs,
         globalOptionIds,
+        pricingMatrix,
         categoryId,
         isFeatured: !!isFeatured
       });
@@ -262,7 +264,7 @@ productsRouter.put('/', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(403).json({ error: 'Unauthorized. Admin permissions required.' });
     }
 
-    const { id, name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, categoryId, isFeatured } = req.body;
+    const { id, name, description, basePrice, thumbnail, images, widthPx, heightPx, bleedMm, dpi, specs, globalOptionIds, pricingMatrix, categoryId, isFeatured } = req.body;
 
     if (!id || !name || !basePrice || !thumbnail || !widthPx || !heightPx) {
       return res.status(400).json({ error: 'Missing mandatory fields' });
@@ -298,6 +300,7 @@ productsRouter.put('/', async (req: AuthenticatedRequest, res: Response) => {
           bleedMm: parseFloat(bleedMm || '0'),
           dpi: dpi ? parseInt(dpi) : null,
           globalOptionIds: globalOptionIds || [],
+          pricingMatrix: pricingMatrix !== undefined ? pricingMatrix : undefined,
           categoryId: categoryId || null,
           isFeatured: isFeatured !== undefined ? !!isFeatured : undefined,
           specs: {
@@ -335,6 +338,7 @@ productsRouter.put('/', async (req: AuthenticatedRequest, res: Response) => {
         bleedMm,
         specs,
         globalOptionIds,
+        pricingMatrix,
         categoryId,
         isFeatured: isFeatured !== undefined ? !!isFeatured : undefined
       });

@@ -27,6 +27,7 @@ export interface MockProduct {
   bleedMm: number;
   specs: MockProductSpec[];
   globalOptionIds?: string[];
+  pricingMatrix?: any;
   categoryId?: string;
   isFeatured?: boolean;
 }
@@ -542,6 +543,7 @@ export const mockDb = {
         vertical: typeof spec.vertical === 'number' ? spec.vertical : (parseFloat(spec.vertical) || 0),
       })),
       globalOptionIds: data.globalOptionIds || [],
+      pricingMatrix: data.pricingMatrix || null,
       categoryId: data.categoryId || null
     };
 
@@ -583,6 +585,7 @@ export const mockDb = {
           vertical: typeof spec.vertical === 'number' ? spec.vertical : (parseFloat(spec.vertical) || 0),
         })),
         globalOptionIds: data.globalOptionIds || [],
+        pricingMatrix: data.pricingMatrix !== undefined ? data.pricingMatrix : MOCK_PRODUCTS[idx].pricingMatrix,
         categoryId: data.categoryId || null
       };
       return MOCK_PRODUCTS[idx];

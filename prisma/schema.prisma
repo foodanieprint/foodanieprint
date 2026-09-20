@@ -46,6 +46,7 @@ model Product {
   bleedMm       Float    // Línea de sangrado en mm para imprenta
   dpi           Int?     // Opcional: DPI personalizado para este producto (ej: 150, 300)
   globalOptionIds Json?   // Reusable global options associated with this product (e.g. ["opt-size"])
+  pricingMatrix   Json?   // Multi-dimensional price matrix for dependent options (Size, Qty, Sides, Turnaround, etc.)
   images        Json?    // Gallery image URLs list
   categoryId    String?
   isFeatured    Boolean  @default(false)
