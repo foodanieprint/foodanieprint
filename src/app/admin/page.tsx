@@ -629,10 +629,16 @@ export default function AdminPage() {
     }));
     setNewProdSpecs(mappedSpecs);
     
-    // Set active size tab to the first available size spec if present
-    const firstSize = mappedSpecs.find((s: any) => s.group.toLowerCase() === 'size')?.value || '';
-    if (firstSize) {
-      setActiveSizeFilter(firstSize);
+    // Detect base variant group (either Size or any group that has children with parentValue or isBasePrice)
+    const detectedBaseGroup = mappedSpecs.find((s: any) => mappedSpecs.some((child: any) => child.parentValue === s.value))?.group 
+      || mappedSpecs.find((s: any) => s.isBasePrice)?.group
+      || (mappedSpecs.some((s: any) => s.group.toLowerCase() === 'size') ? 'Size' : (mappedSpecs[0]?.group || 'Size'));
+
+    setVariantBaseGroup(detectedBaseGroup);
+
+    const firstVariantVal = mappedSpecs.find((s: any) => s.group.toLowerCase() === detectedBaseGroup.toLowerCase())?.value || '';
+    if (firstVariantVal) {
+      setActiveSizeFilter(firstVariantVal);
     }
     
     // Load pricing matrix if present

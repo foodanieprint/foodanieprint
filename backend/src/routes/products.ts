@@ -90,8 +90,30 @@ productsRouter.get('/:slug', async (req: AuthenticatedRequest, res: Response) =>
       }
       return false;
     });
-    const allowedOptionNames = new Set(catOptions.map((o: any) => o.name));
-    specs = specs.filter((s: any) => allowedOptionNames.has(s.group));
+    // Add inherited category options without destroying the product's custom specs & option variants
+    if (catOptions.length > 0) {
+      catOptions.forEach((globalOpt: any) => {
+        if (Array.isArray(globalOpt.attributes)) {
+          globalOpt.attributes.forEach((attr: any, idx: number) => {
+            const exists = specs.some(s => s.group.toLowerCase() === globalOpt.name.toLowerCase() && s.value === attr.value);
+            if (!exists) {
+              specs.push({
+                id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
+                productId: product.id,
+                group: globalOpt.name,
+                value: attr.value,
+                priceMarkup: attr.priceMarkup,
+                markupType: attr.markupType || 'FLAT',
+                isBasePrice: attr.isBasePrice ?? false,
+                imageUrl: attr.imageUrl || null,
+                horizontal: attr.horizontal || 0,
+                vertical: attr.vertical || 0,
+              });
+            }
+          });
+        }
+      });
+    }
   } else {
     const optionIds = Array.isArray(product.globalOptionIds) 
       ? product.globalOptionIds 
