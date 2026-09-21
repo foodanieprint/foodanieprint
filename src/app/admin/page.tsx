@@ -369,20 +369,8 @@ export default function AdminPage() {
     return opt.categoryId === catId;
   };
 
-  // Synchronize newProdSpecs when category changes to prevent display of mismatching options
-  useEffect(() => {
-    if (globalOptions.length > 0 && newProdCategoryId) {
-      const allowedGroups = new Set(
-        globalOptions
-          .filter((opt: any) => isOptionInCategory(opt, newProdCategoryId))
-          .map((opt: any) => opt.name)
-      );
-      const filtered = newProdSpecs.filter((spec: any) => allowedGroups.has(spec.group));
-      if (filtered.length !== newProdSpecs.length) {
-        setNewProdSpecs(filtered);
-      }
-    }
-  }, [newProdCategoryId, globalOptions, newProdSpecs]);
+  // Do not purge or wipe newProdSpecs when category changes, so custom Option Variants and custom specs are preserved
+
 
   // 3. Cambiar estado de la orden (Imprenta -> Enviado -> Entregado)
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
@@ -2247,19 +2235,20 @@ export default function AdminPage() {
                         value={row.group} 
                         onChange={(e) => handleSpecRowChange(idx, 'group', e.target.value)}
                       >
-                        {/* Dynamic Global Options mapping filtered by product category */}
-                        {globalOptions
-                          .filter((opt: any) => !newProdCategoryId || isOptionInCategory(opt, newProdCategoryId))
-                          .map((opt: any) => (
-                            <option key={opt.id} value={opt.name}>{opt.name}</option>
-                          ))}
+                        {/* Dynamic Global Options mapping */}
+                        {globalOptions.map((opt: any) => (
+                          <option key={opt.id} value={opt.name}>{opt.name}</option>
+                        ))}
+                        {row.group && !globalOptions.some((o: any) => o.name === row.group) && (
+                          <option value={row.group}>{row.group}</option>
+                        )}
                         
                         {/* Fallback items if no custom global options exist yet */}
                         {globalOptions.length === 0 && (
                           <>
+                            <option value="Size">Size Option (e.g. Small / Large)</option>
                             <option value="Material">Material Density (e.g. Paper / Fabric)</option>
                             <option value="Finish">Finish Coating (e.g. Glossy / Spot UV)</option>
-                            <option value="Size">Size Option (e.g. Small / Large)</option>
                             <option value="Color">Base Ink Color</option>
                             <option value="Quantity">Package Quantity Tier</option>
                           </>
