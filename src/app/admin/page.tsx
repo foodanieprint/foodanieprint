@@ -146,6 +146,11 @@ export default function AdminPage() {
     { group: 'Qty', value: '500', horizontal: '0', vertical: '0', priceMarkup: '0.030', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '5x7' }
   ]);
   const [activeSizeFilter, setActiveSizeFilter] = useState<string>('4x6');
+  const [variantBaseGroup, setVariantBaseGroup] = useState<string>('Size');
+  const [showAddVariantModal, setShowAddVariantModal] = useState<boolean>(false);
+  const [newVariantValue, setNewVariantValue] = useState<string>('');
+  const [newVariantBasePrice, setNewVariantBasePrice] = useState<string>('50.00');
+  const [selectedVariantOptionNames, setSelectedVariantOptionNames] = useState<string[]>([]);
 
   // Matriz de precios multidimensional (SinaLite Grid)
   const [newProdPricingMatrix, setNewProdPricingMatrix] = useState<Array<{ id?: string; specs: Record<string, string>; price: string }>>([]);
@@ -1835,7 +1840,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Configurar Variantes / Specs con selector visual de Tamaños */}
+              {/* Configurar Variantes / Specs con selector visual de Option Variants */}
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                   <div>
@@ -1843,67 +1848,295 @@ export default function AdminPage() {
                       Configurable Dynamic Attributes & Options
                     </h4>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Select a Size variant below to configure its unique base price and specific option markups.
+                      Select an Option Variant below (e.g. {variantBaseGroup} {activeSizeFilter}) to configure its unique base price and specific option markups.
                     </span>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button 
                       type="button" 
-                      className="btn btn-secondary btn-sm" 
+                      className="btn btn-primary btn-sm" 
                       onClick={() => {
-                        const newSize = prompt('Enter new size dimension (e.g. 6x9, 8.5x11, 4x9):');
-                        if (newSize && newSize.trim()) {
-                          const cleanSize = newSize.trim();
-                          // Parse dims
-                          const match = cleanSize.match(/([0-9.]+)\s*(?:x|by|\*)\s*([0-9.]+)/i);
-                          const horiz = match ? match[1] : '0';
-                          const vert = match ? match[2] : '0';
-                          // Add size spec
-                          const newSpecs = [
-                            ...newProdSpecs,
-                            { group: 'Size', value: cleanSize, horizontal: horiz, vertical: vert, priceMarkup: newProdPrice || '50.00', markupType: 'FLAT', isBasePrice: true, imageUrl: '' }
-                          ];
-                          // Also clone non-size specs from activeSizeFilter if available
-                          if (activeSizeFilter) {
-                            const siblings = newProdSpecs.filter(s => s.group.toLowerCase() !== 'size' && s.parentValue === activeSizeFilter);
-                            siblings.forEach((s) => {
-                              newSpecs.push({
-                                ...s,
-                                id: undefined,
-                                parentValue: cleanSize
-                              });
-                            });
-                          }
-                          setNewProdSpecs(newSpecs);
-                          setActiveSizeFilter(cleanSize);
-                        }
+                        // Pre-populate available option names from globalOptions excluding the base variant group
+                        const otherOptions = globalOptions
+                          .filter((o: any) => o.name?.toLowerCase() !== variantBaseGroup.toLowerCase() && o.attributes?.length > 0)
+                          .map((o: any) => o.name);
+                        setSelectedVariantOptionNames(otherOptions);
+                        setNewVariantValue('');
+                        setNewVariantBasePrice(newProdPrice || '50.00');
+                        setShowAddVariantModal(true);
                       }}
-                      style={{ padding: '6px 12px', fontSize: '12px', fontWeight: '600' }}
+                      style={{ padding: '7px 14px', fontSize: '12px', fontWeight: '700', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <Plus size={12} /> Add Size Variant
+                      <Plus size={14} /> Add Option Variant
                     </button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddSpecRow} style={{ padding: '6px 12px' }}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddSpecRow} style={{ padding: '7px 12px' }}>
                       <Plus size={12} /> Add Specification Choice
                     </button>
                   </div>
                 </div>
 
-                {/* Visual Size Variant Cards (as seen in user design mockup) */}
+                {/* MODAL: ADD OPTION VARIANT */}
+                {showAddVariantModal && (
+                  <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 100,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px'
+                  }}>
+                    <div style={{
+                      background: '#ffffff',
+                      borderRadius: '12px',
+                      maxWidth: '560px',
+                      width: '100%',
+                      padding: '24px',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                      border: '1px solid var(--border-color)',
+                      maxHeight: '90vh',
+                      overflowY: 'auto'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+                        <div>
+                          <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                            ✨ Add Option Variant
+                          </h3>
+                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                            Define a variant value (e.g. Size 4x6, 5x7) and choose which options & attributes will have independent pricing inside it.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddVariantModal(false)}
+                          style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
+                        >
+                          &times;
+                        </button>
+                      </div>
+
+                      {/* 1. Base Variant Dimension */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                            Variant Option Group
+                          </label>
+                          <select
+                            className="input-field"
+                            value={variantBaseGroup}
+                            onChange={(e) => {
+                              const newGroup = e.target.value;
+                              setVariantBaseGroup(newGroup);
+                              // Auto-select other options
+                              const otherOptions = globalOptions
+                                .filter((o: any) => o.name?.toLowerCase() !== newGroup.toLowerCase() && o.attributes?.length > 0)
+                                .map((o: any) => o.name);
+                              setSelectedVariantOptionNames(otherOptions);
+                            }}
+                            style={{ padding: '8px 10px', fontSize: '13px' }}
+                          >
+                            {globalOptions.map((opt: any) => (
+                              <option key={opt.id} value={opt.name}>{opt.name}</option>
+                            ))}
+                            {!globalOptions.some(o => o.name.toLowerCase() === 'size') && (
+                              <option value="Size">Size</option>
+                            )}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                            Variant Value
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="input-field"
+                            placeholder="e.g. 4x6, 5x7, Small..."
+                            value={newVariantValue}
+                            onChange={(e) => setNewVariantValue(e.target.value)}
+                            style={{ padding: '8px 10px', fontSize: '13px' }}
+                            list="variant-attr-suggestions"
+                          />
+                          <datalist id="variant-attr-suggestions">
+                            {globalOptions
+                              .find((o: any) => o.name.toLowerCase() === variantBaseGroup.toLowerCase())
+                              ?.attributes?.map((a: any) => (
+                                <option key={a.id} value={a.value} />
+                              ))}
+                          </datalist>
+                        </div>
+                      </div>
+
+                      {/* 2. Base Price for this Variant */}
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                          Starting / Base Price ($) for this Variant
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          className="input-field"
+                          placeholder="e.g. 50.00"
+                          value={newVariantBasePrice}
+                          onChange={(e) => setNewVariantBasePrice(e.target.value)}
+                          style={{ padding: '8px 10px', fontSize: '13px' }}
+                        />
+                      </div>
+
+                      {/* 3. Choose Options and Attributes to include inside this variant */}
+                      <div style={{ marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                            Include Options & Attributes for this Variant:
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const avail = globalOptions
+                                .filter((o: any) => o.name?.toLowerCase() !== variantBaseGroup.toLowerCase() && o.attributes?.length > 0)
+                                .map((o: any) => o.name);
+                              setSelectedVariantOptionNames(selectedVariantOptionNames.length === avail.length ? [] : avail);
+                            }}
+                            style={{ fontSize: '11px', color: 'var(--accent-primary)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: '600' }}
+                          >
+                            {selectedVariantOptionNames.length > 0 ? 'Deselect All' : 'Select All'}
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '10px', background: 'var(--bg-secondary)' }}>
+                          {globalOptions
+                            .filter((opt: any) => opt.name?.toLowerCase() !== variantBaseGroup.toLowerCase())
+                            .map((opt: any) => {
+                              const isChecked = selectedVariantOptionNames.includes(opt.name);
+                              const attrs = opt.attributes || [];
+
+                              return (
+                                <label key={opt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: '#ffffff', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedVariantOptionNames([...selectedVariantOptionNames, opt.name]);
+                                        } else {
+                                          setSelectedVariantOptionNames(selectedVariantOptionNames.filter(n => n !== opt.name));
+                                        }
+                                      }}
+                                      style={{ accentColor: 'var(--accent-primary)' }}
+                                    />
+                                    <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{opt.name}</span>
+                                  </div>
+                                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', background: '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
+                                    {attrs.length} attributes ({attrs.slice(0, 3).map((a: any) => a.value).join(', ')}{attrs.length > 3 ? '...' : ''})
+                                  </span>
+                                </label>
+                              );
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Modal Footer */}
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setShowAddVariantModal(false)}
+                          style={{ padding: '8px 16px' }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => {
+                            if (!newVariantValue.trim()) {
+                              alert('Please enter a variant value (e.g. 4x6, 5x7).');
+                              return;
+                            }
+                            const cleanValue = newVariantValue.trim();
+
+                            // Parse horizontal & vertical if it's Size
+                            const match = cleanValue.match(/([0-9.]+)\s*(?:x|by|\*)\s*([0-9.]+)/i);
+                            const horiz = match ? match[1] : '0';
+                            const vert = match ? match[2] : '0';
+
+                            // 1. Add base variant spec
+                            const newSpecsList = [...newProdSpecs];
+                            const existingBaseIndex = newSpecsList.findIndex(s => s.group.toLowerCase() === variantBaseGroup.toLowerCase() && s.value === cleanValue);
+
+                            if (existingBaseIndex !== -1) {
+                              newSpecsList[existingBaseIndex].priceMarkup = newVariantBasePrice || '0';
+                            } else {
+                              newSpecsList.push({
+                                group: variantBaseGroup,
+                                value: cleanValue,
+                                horizontal: horiz,
+                                vertical: vert,
+                                priceMarkup: newVariantBasePrice || '50.00',
+                                markupType: 'FLAT',
+                                isBasePrice: true,
+                                imageUrl: ''
+                              });
+                            }
+
+                            // 2. Add attributes for all selected option groups specifically for this parent variant
+                            selectedVariantOptionNames.forEach((optName) => {
+                              const matchingOpt = globalOptions.find((o: any) => o.name === optName);
+                              if (matchingOpt && Array.isArray(matchingOpt.attributes)) {
+                                matchingOpt.attributes.forEach((attr: any) => {
+                                  // Check if already exists for this parent
+                                  const alreadyExists = newSpecsList.some(s => s.group === optName && s.value === attr.value && s.parentValue === cleanValue);
+                                  if (!alreadyExists) {
+                                    newSpecsList.push({
+                                      group: optName,
+                                      value: attr.value,
+                                      horizontal: String(attr.horizontal || '0'),
+                                      vertical: String(attr.vertical || '0'),
+                                      priceMarkup: String(attr.priceMarkup || '0'),
+                                      markupType: attr.markupType || 'FLAT',
+                                      isBasePrice: false,
+                                      imageUrl: attr.imageUrl || '',
+                                      parentValue: cleanValue
+                                    });
+                                  }
+                                });
+                              }
+                            });
+
+                            setNewProdSpecs(newSpecsList);
+                            setActiveSizeFilter(cleanValue);
+                            setShowAddVariantModal(false);
+                          }}
+                          style={{ padding: '8px 18px', fontWeight: '700', background: 'var(--accent-primary)' }}
+                        >
+                          Create Option Variant
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Visual Option Variant Cards (e.g. Size 4x6, 5x7) */}
                 {(() => {
-                  const sizeSpecs = newProdSpecs.filter(s => s.group.toLowerCase() === 'size');
-                  if (sizeSpecs.length === 0) return null;
+                  const baseVariantSpecs = newProdSpecs.filter(s => s.group.toLowerCase() === variantBaseGroup.toLowerCase());
+                  if (baseVariantSpecs.length === 0) return null;
 
                   return (
                     <div style={{ marginBottom: '20px' }}>
                       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        {sizeSpecs.map((sizeSpec, sIdx) => {
-                          const isSelected = (activeSizeFilter === sizeSpec.value) || (!activeSizeFilter && sIdx === 0);
-                          const matchingRowsCount = newProdSpecs.filter(s => s.group.toLowerCase() !== 'size' && s.parentValue === sizeSpec.value).length;
+                        {baseVariantSpecs.map((vSpec, sIdx) => {
+                          const isSelected = (activeSizeFilter === vSpec.value) || (!activeSizeFilter && sIdx === 0);
+                          const matchingRowsCount = newProdSpecs.filter(s => s.group.toLowerCase() !== variantBaseGroup.toLowerCase() && s.parentValue === vSpec.value).length;
 
                           return (
                             <div
-                              key={sizeSpec.value || sIdx}
-                              onClick={() => setActiveSizeFilter(sizeSpec.value)}
+                              key={vSpec.value || sIdx}
+                              onClick={() => setActiveSizeFilter(vSpec.value)}
                               style={{
                                 width: '180px',
                                 minHeight: '110px',
@@ -1925,12 +2158,15 @@ export default function AdminPage() {
                               {isSelected && (
                                 <div style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }} />
                               )}
-                              <span style={{ fontSize: '32px', fontWeight: '800', color: isSelected ? 'var(--text-primary)' : '#64748b', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                                {sizeSpec.value}
+                              <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                                {variantBaseGroup}
+                              </span>
+                              <span style={{ fontSize: '30px', fontWeight: '800', color: isSelected ? 'var(--text-primary)' : '#64748b', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                                {vSpec.value}
                               </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
                                 <span style={{ fontSize: '12px', fontWeight: '700', color: isSelected ? 'var(--accent-primary)' : '#64748b' }}>
-                                  ${parseFloat(sizeSpec.priceMarkup || '0').toFixed(2)}
+                                  ${parseFloat(vSpec.priceMarkup || '0').toFixed(2)}
                                 </span>
                                 <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
                                   ({matchingRowsCount} options)
@@ -1962,18 +2198,17 @@ export default function AdminPage() {
                   );
                 })()}
 
-                {/* Specs List filtered by selected Size Variant */}
+                {/* Specs List filtered by selected Option Variant */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {newProdSpecs
                     .map((row, originalIdx) => ({ row, originalIdx }))
                     .filter(({ row }) => {
                       if (!activeSizeFilter || activeSizeFilter === '__ALL__') return true;
-                      if (row.group.toLowerCase() === 'size') {
+                      if (row.group.toLowerCase() === variantBaseGroup.toLowerCase()) {
                         return row.value === activeSizeFilter;
                       }
-                      // For non-size specs, show if it belongs to this size, or if it has no parentValue
+                      // For non-variant specs, show if it belongs to this variant value, or if it has no parentValue
                       return row.parentValue === activeSizeFilter || !row.parentValue;
-                    })
                     .map(({ row, originalIdx: idx }) => (
                     <div 
                       key={idx} 
