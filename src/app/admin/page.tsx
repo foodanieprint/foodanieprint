@@ -131,14 +131,26 @@ export default function AdminPage() {
   const [selectedGlobalOptionIds, setSelectedGlobalOptionIds] = useState<string[]>([]);
   
   // Especificaciones dinámicas en creación de productos
-  const [newProdSpecs, setNewProdSpecs] = useState<Array<{ id?: string; group: string; value: string; horizontal?: string; vertical?: string; priceMarkup: string; markupType: string; isBasePrice: boolean; imageUrl: string }>>([
-    { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
-    { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
+  const [newProdSpecs, setNewProdSpecs] = useState<Array<{ id?: string; group: string; value: string; horizontal?: string; vertical?: string; priceMarkup: string; markupType: string; isBasePrice: boolean; imageUrl: string; parentValue?: string }>>([
+    { group: 'Size', value: '4x6', horizontal: '4', vertical: '6', priceMarkup: '58.99', markupType: 'FLAT', isBasePrice: true, imageUrl: '' },
+    { group: 'Size', value: '5x7', horizontal: '5', vertical: '7', priceMarkup: '50.00', markupType: 'FLAT', isBasePrice: true, imageUrl: '' },
+    { group: 'Orientation', value: 'Horizontal', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+    { group: 'Orientation', value: 'Vertical', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+    { group: 'Stock', value: '16 PT', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+    { group: 'Qty', value: '250', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+    { group: 'Qty', value: '500', horizontal: '0', vertical: '0', priceMarkup: '0.035', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+    { group: 'Orientation', value: 'Horizontal', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '5x7' },
+    { group: 'Orientation', value: 'Vertical', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '5x7' },
+    { group: 'Stock', value: '16 PT', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '5x7' },
+    { group: 'Qty', value: '250', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '5x7' },
+    { group: 'Qty', value: '500', horizontal: '0', vertical: '0', priceMarkup: '0.030', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '5x7' }
   ]);
+  const [activeSizeFilter, setActiveSizeFilter] = useState<string>('4x6');
 
   // Matriz de precios multidimensional (SinaLite Grid)
   const [newProdPricingMatrix, setNewProdPricingMatrix] = useState<Array<{ id?: string; specs: Record<string, string>; price: string }>>([]);
   const [showPricingMatrixSection, setShowPricingMatrixSection] = useState(false);
+  const [selectedMatrixOptionIds, setSelectedMatrixOptionIds] = useState<string[]>([]);
 
   // Estado del creador de Global Options & Attributes
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
@@ -408,6 +420,7 @@ export default function AdminPage() {
       defaultVert = String(selectedOpt.attributes[0].vertical || '0');
       defaultImageUrl = selectedOpt.attributes[0].imageUrl || '';
     }
+    const isSize = defaultGroup.toLowerCase() === 'size';
     setNewProdSpecs([...newProdSpecs, { 
       group: defaultGroup, 
       value: defaultValue, 
@@ -416,7 +429,8 @@ export default function AdminPage() {
       isBasePrice: defaultIsBasePrice,
       horizontal: defaultHoriz,
       vertical: defaultVert,
-      imageUrl: defaultImageUrl
+      imageUrl: defaultImageUrl,
+      parentValue: !isSize && activeSizeFilter ? activeSizeFilter : undefined
     }]);
   };
 
@@ -515,6 +529,7 @@ export default function AdminPage() {
           ...spec,
           horizontal: parseFloat(spec.horizontal || '0') || 0,
           vertical: parseFloat(spec.vertical || '0') || 0,
+          parentValue: spec.parentValue || null
         })),
         globalOptionIds: selectedGlobalOptionIds,
         pricingMatrix: newProdPricingMatrix.length > 0 ? newProdPricingMatrix.map(r => ({ specs: r.specs, price: parseFloat(r.price) || 0 })) : null,
@@ -604,9 +619,16 @@ export default function AdminPage() {
       priceMarkup: spec.priceMarkup.toString(),
       markupType: spec.markupType || 'FLAT',
       isBasePrice: spec.isBasePrice || false,
-      imageUrl: spec.imageUrl || ''
+      imageUrl: spec.imageUrl || '',
+      parentValue: spec.parentValue || ''
     }));
     setNewProdSpecs(mappedSpecs);
+    
+    // Set active size tab to the first available size spec if present
+    const firstSize = mappedSpecs.find((s: any) => s.group.toLowerCase() === 'size')?.value || '';
+    if (firstSize) {
+      setActiveSizeFilter(firstSize);
+    }
     
     // Load pricing matrix if present
     let matrixRows: any[] = [];
@@ -653,9 +675,20 @@ export default function AdminPage() {
     setSelectedGlobalOptionIds([]);
     setNewProdPricingMatrix([]);
     setShowPricingMatrixSection(false);
+    setActiveSizeFilter('4x6');
     setNewProdSpecs([
-      { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
-      { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
+      { group: 'Size', value: '4x6', horizontal: '4', vertical: '6', priceMarkup: '58.99', markupType: 'FLAT', isBasePrice: true, imageUrl: '' },
+      { group: 'Size', value: '5x7', horizontal: '5', vertical: '7', priceMarkup: '50.00', markupType: 'FLAT', isBasePrice: true, imageUrl: '' },
+      { group: 'Orientation', value: 'Horizontal', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+      { group: 'Orientation', value: 'Vertical', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+      { group: 'Stock', value: '16 PT', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+      { group: 'Qty', value: '250', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+      { group: 'Qty', value: '500', horizontal: '0', vertical: '0', priceMarkup: '0.035', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '4x6' },
+      { group: 'Orientation', value: 'Horizontal', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '5x7' },
+      { group: 'Orientation', value: 'Vertical', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '5x7' },
+      { group: 'Stock', value: '16 PT', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '', parentValue: '5x7' },
+      { group: 'Qty', value: '250', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '5x7' },
+      { group: 'Qty', value: '500', horizontal: '0', vertical: '0', priceMarkup: '0.030', markupType: 'MULTIPLY_BY_QTY', isBasePrice: false, imageUrl: '', parentValue: '5x7' }
     ]);
     setEditingProductId(null);
     setActiveTab('create-product');
@@ -1802,17 +1835,146 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Configurar Variantes / Specs */}
+              {/* Configurar Variantes / Specs con selector visual de Tamaños */}
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h4 style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '700' }}>Configurable Dynamic Attributes & Options</h4>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddSpecRow} style={{ padding: '6px 12px' }}>
-                    <Plus size={12} /> Add Specification Choice
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', color: 'var(--text-primary)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      Configurable Dynamic Attributes & Options
+                    </h4>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      Select a Size variant below to configure its unique base price and specific option markups.
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => {
+                        const newSize = prompt('Enter new size dimension (e.g. 6x9, 8.5x11, 4x9):');
+                        if (newSize && newSize.trim()) {
+                          const cleanSize = newSize.trim();
+                          // Parse dims
+                          const match = cleanSize.match(/([0-9.]+)\s*(?:x|by|\*)\s*([0-9.]+)/i);
+                          const horiz = match ? match[1] : '0';
+                          const vert = match ? match[2] : '0';
+                          // Add size spec
+                          const newSpecs = [
+                            ...newProdSpecs,
+                            { group: 'Size', value: cleanSize, horizontal: horiz, vertical: vert, priceMarkup: newProdPrice || '50.00', markupType: 'FLAT', isBasePrice: true, imageUrl: '' }
+                          ];
+                          // Also clone non-size specs from activeSizeFilter if available
+                          if (activeSizeFilter) {
+                            const siblings = newProdSpecs.filter(s => s.group.toLowerCase() !== 'size' && s.parentValue === activeSizeFilter);
+                            siblings.forEach((s) => {
+                              newSpecs.push({
+                                ...s,
+                                id: undefined,
+                                parentValue: cleanSize
+                              });
+                            });
+                          }
+                          setNewProdSpecs(newSpecs);
+                          setActiveSizeFilter(cleanSize);
+                        }
+                      }}
+                      style={{ padding: '6px 12px', fontSize: '12px', fontWeight: '600' }}
+                    >
+                      <Plus size={12} /> Add Size Variant
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddSpecRow} style={{ padding: '6px 12px' }}>
+                      <Plus size={12} /> Add Specification Choice
+                    </button>
+                  </div>
                 </div>
 
+                {/* Visual Size Variant Cards (as seen in user design mockup) */}
+                {(() => {
+                  const sizeSpecs = newProdSpecs.filter(s => s.group.toLowerCase() === 'size');
+                  if (sizeSpecs.length === 0) return null;
+
+                  return (
+                    <div style={{ marginBottom: '20px' }}>
+                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {sizeSpecs.map((sizeSpec, sIdx) => {
+                          const isSelected = (activeSizeFilter === sizeSpec.value) || (!activeSizeFilter && sIdx === 0);
+                          const matchingRowsCount = newProdSpecs.filter(s => s.group.toLowerCase() !== 'size' && s.parentValue === sizeSpec.value).length;
+
+                          return (
+                            <div
+                              key={sizeSpec.value || sIdx}
+                              onClick={() => setActiveSizeFilter(sizeSpec.value)}
+                              style={{
+                                width: '180px',
+                                minHeight: '110px',
+                                background: isSelected ? '#ffffff' : '#f1f5f9',
+                                border: isSelected ? '2.5px solid var(--accent-primary)' : '1.5px solid #cbd5e1',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '16px 12px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: isSelected ? '0 8px 20px rgba(0, 111, 66, 0.12)' : 'none',
+                                position: 'relative'
+                              }}
+                            >
+                              {/* Active badge */}
+                              {isSelected && (
+                                <div style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }} />
+                              )}
+                              <span style={{ fontSize: '32px', fontWeight: '800', color: isSelected ? 'var(--text-primary)' : '#64748b', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                                {sizeSpec.value}
+                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: '700', color: isSelected ? 'var(--accent-primary)' : '#64748b' }}>
+                                  ${parseFloat(sizeSpec.priceMarkup || '0').toFixed(2)}
+                                </span>
+                                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                  ({matchingRowsCount} options)
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* View All button */}
+                        <button
+                          type="button"
+                          onClick={() => setActiveSizeFilter('__ALL__')}
+                          style={{
+                            padding: '10px 16px',
+                            background: activeSizeFilter === '__ALL__' ? 'var(--accent-primary)' : 'transparent',
+                            color: activeSizeFilter === '__ALL__' ? '#ffffff' : 'var(--text-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Show All Options (Unfiltered)
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Specs List filtered by selected Size Variant */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {newProdSpecs.map((row, idx) => (
+                  {newProdSpecs
+                    .map((row, originalIdx) => ({ row, originalIdx }))
+                    .filter(({ row }) => {
+                      if (!activeSizeFilter || activeSizeFilter === '__ALL__') return true;
+                      if (row.group.toLowerCase() === 'size') {
+                        return row.value === activeSizeFilter;
+                      }
+                      // For non-size specs, show if it belongs to this size, or if it has no parentValue
+                      return row.parentValue === activeSizeFilter || !row.parentValue;
+                    })
+                    .map(({ row, originalIdx: idx }) => (
                     <div 
                       key={idx} 
                       className="spec-drag-row"
@@ -2041,7 +2203,7 @@ export default function AdminPage() {
                         type="button" 
                         className="btn btn-primary btn-sm" 
                         onClick={() => {
-                          // Extract unique groups from current specs to pre-populate row keys
+                          // Extract unique groups from current specs or global options
                           const distinctGroups = Array.from(new Set(newProdSpecs.map(s => s.group))).filter(Boolean);
                           const initialRowSpecs: Record<string, string> = {};
                           distinctGroups.forEach(g => {
@@ -2064,12 +2226,142 @@ export default function AdminPage() {
                   <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '16px' }}>
                     {/* Quick helper tip */}
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(14, 165, 233, 0.2)', padding: '10px 14px', borderRadius: '6px' }}>
-                      💡 <strong>How it works:</strong> Each row defines an exact final price when the client selects that specific combination of Size, Qty, Sides, etc. If a selection matches a matrix row, the matrix price overrides default sums.
+                      💡 <strong>How it works:</strong> Link this matrix to your catalog’s <strong>Global Options & Attributes</strong>. Each combination row defines an exact final retail price when a customer selects those specific options (e.g. Size + Qty + Turnaround).
+                    </div>
+
+                    {/* Global Options & Attributes Picker for Generator */}
+                    <div style={{ background: '#ffffff', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div>
+                          <h5 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Sliders size={14} color="var(--accent-primary)" />
+                            Build Matrix from Global Options & Attributes
+                          </h5>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                            Check the option dimensions you want in the pricing table, then click generate:
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '11px', padding: '4px 8px' }}
+                            onClick={() => {
+                              const allIds = globalOptions.filter((o: any) => o.attributes && o.attributes.length > 0).map((o: any) => o.id);
+                              setSelectedMatrixOptionIds(selectedMatrixOptionIds.length === allIds.length ? [] : allIds);
+                            }}
+                          >
+                            {selectedMatrixOptionIds.length > 0 ? 'Deselect All' : 'Select All Available'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: '12px', padding: '5px 12px', fontWeight: '700', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            onClick={() => {
+                              const chosenOptions = globalOptions.filter((opt: any) => selectedMatrixOptionIds.includes(opt.id) && opt.attributes && opt.attributes.length > 0);
+                              if (chosenOptions.length === 0) {
+                                alert('Please select at least 1 Global Option group with attributes below.');
+                                return;
+                              }
+
+                              // Calculate total Cartesian combinations
+                              const totalCombinations = chosenOptions.reduce((acc: number, opt: any) => acc * opt.attributes.length, 1);
+                              if (totalCombinations > 300) {
+                                if (!confirm(`Generating ${totalCombinations} rows might be very large. Continue?`)) {
+                                  return;
+                                }
+                              } else if (newProdPricingMatrix.length > 0) {
+                                if (!confirm(`This will generate ${totalCombinations} new matrix combinations. Replace current matrix rows?`)) {
+                                  return;
+                                }
+                              }
+
+                              // Cartesian product algorithm
+                              const cartesian = (arrays: any[][]): any[][] => {
+                                return arrays.reduce((acc, curr) => acc.flatMap(c => curr.map(n => [...c, n])), [[]] as any[][]);
+                              };
+
+                              const attrArrays = chosenOptions.map((opt: any) => 
+                                opt.attributes.map((a: any) => ({ group: opt.name, value: a.value }))
+                              );
+
+                              const combinations = cartesian(attrArrays);
+                              const generatedRows = combinations.map((comb: any[], idx: number) => {
+                                const rowSpecs: Record<string, string> = {};
+                                comb.forEach((item: any) => {
+                                  rowSpecs[item.group] = item.value;
+                                });
+                                return {
+                                  id: `m-gen-${Date.now()}-${idx}`,
+                                  specs: rowSpecs,
+                                  price: '10.00'
+                                };
+                              });
+
+                              setNewProdPricingMatrix(generatedRows);
+                            }}
+                          >
+                            ⚡ Auto-Generate Combinations Table
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Options Chips Selection */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {globalOptions.length === 0 ? (
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            No global options found. Create options in the "Options & Attributes" tab first.
+                          </div>
+                        ) : (
+                          globalOptions.map((opt: any) => {
+                            const isSelected = selectedMatrixOptionIds.includes(opt.id);
+                            const attrs = opt.attributes || [];
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedMatrixOptionIds(selectedMatrixOptionIds.filter((id) => id !== opt.id));
+                                  } else {
+                                    setSelectedMatrixOptionIds([...selectedMatrixOptionIds, opt.id]);
+                                  }
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '6px 12px',
+                                  borderRadius: '20px',
+                                  fontSize: '12px',
+                                  fontWeight: isSelected ? '700' : '500',
+                                  border: isSelected ? '1.5px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                  background: isSelected ? 'rgba(0, 111, 66, 0.08)' : 'var(--bg-secondary)',
+                                  color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                <span>{opt.name}</span>
+                                <span style={{
+                                  fontSize: '10px',
+                                  padding: '1px 6px',
+                                  borderRadius: '10px',
+                                  background: isSelected ? 'var(--accent-primary)' : '#e2e8f0',
+                                  color: isSelected ? '#ffffff' : 'var(--text-secondary)'
+                                }}>
+                                  {attrs.length} values
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
 
                     {newProdPricingMatrix.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
-                        No combination rows added yet. Click <strong>"Add Combination Row"</strong> or <strong>"Load Sample SinaLite Postcard Matrix"</strong> to start.
+                        No combination rows added yet. Select options above and click <strong>"⚡ Auto-Generate Combinations Table"</strong>, or click <strong>"Add Combination Row"</strong>.
                         <div style={{ marginTop: '12px' }}>
                           <button
                             type="button"
@@ -2102,97 +2394,162 @@ export default function AdminPage() {
                         </div>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
-                        {newProdPricingMatrix.map((row, rIdx) => {
-                          const specKeys = Object.keys(row.specs);
-                          return (
-                            <div 
-                              key={row.id || rIdx} 
-                              style={{ 
-                                display: 'flex', 
-                                gap: '10px', 
-                                alignItems: 'center', 
-                                background: '#ffffff', 
-                                padding: '10px 14px', 
-                                borderRadius: '6px', 
-                                border: '1px solid var(--border-color)',
-                                flexWrap: 'wrap'
-                              }}
-                            >
-                              <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', width: '28px' }}>
-                                #{rIdx + 1}
-                              </div>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 4px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                            Total Active Matrix Rows: <strong>{newProdPricingMatrix.length}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Clear all pricing matrix rows?')) {
+                                setNewProdPricingMatrix([]);
+                              }
+                            }}
+                            style={{ fontSize: '11px', color: 'var(--danger)', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <Trash2 size={12} /> Clear Table
+                          </button>
+                        </div>
 
-                              {/* Specs tags / inputs for each group */}
-                              <div style={{ display: 'flex', gap: '8px', flex: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                                {specKeys.map((k) => (
-                                  <div key={k} style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-                                    <span style={{ fontSize: '11px', fontWeight: '700', padding: '4px 8px', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.03)', borderRight: '1px solid var(--border-color)' }}>
-                                      {k}
-                                    </span>
-                                    <input 
-                                      type="text" 
-                                      value={row.specs[k] || ''} 
-                                      onChange={(e) => {
-                                        const updatedSpecs = { ...row.specs, [k]: e.target.value };
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '460px', overflowY: 'auto', paddingRight: '4px' }}>
+                          {newProdPricingMatrix.map((row, rIdx) => {
+                            const specKeys = Object.keys(row.specs);
+                            return (
+                              <div 
+                                key={row.id || rIdx} 
+                                style={{ 
+                                  display: 'flex', 
+                                  gap: '10px', 
+                                  alignItems: 'center', 
+                                  background: '#ffffff', 
+                                  padding: '8px 12px', 
+                                  borderRadius: '6px', 
+                                  border: '1px solid var(--border-color)',
+                                  flexWrap: 'wrap'
+                                }}
+                              >
+                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', width: '28px' }}>
+                                  #{rIdx + 1}
+                                </div>
+
+                                {/* Specs tags / inputs for each group with Global Options & Attributes lookup */}
+                                <div style={{ display: 'flex', gap: '8px', flex: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                                  {specKeys.map((k) => {
+                                    // Match against existing Global Options
+                                    const matchingOption = globalOptions.find((o: any) => o.name?.toLowerCase().trim() === k.toLowerCase().trim());
+                                    const knownAttrs = matchingOption?.attributes || [];
+
+                                    return (
+                                      <div key={k} style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: '700', padding: '4px 8px', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.03)', borderRight: '1px solid var(--border-color)' }}>
+                                          {k}
+                                        </span>
+                                        {knownAttrs.length > 0 ? (
+                                          <select
+                                            value={row.specs[k] || ''}
+                                            onChange={(e) => {
+                                              const updatedSpecs = { ...row.specs, [k]: e.target.value };
+                                              const updated = [...newProdPricingMatrix];
+                                              updated[rIdx] = { ...updated[rIdx], specs: updatedSpecs };
+                                              setNewProdPricingMatrix(updated);
+                                            }}
+                                            style={{ border: 'none', background: 'transparent', padding: '4px 8px', fontSize: '12px', color: 'var(--text-primary)', outline: 'none', minWidth: '110px' }}
+                                          >
+                                            <option value="">-- Choose Value --</option>
+                                            {knownAttrs.map((a: any) => (
+                                              <option key={a.id} value={a.value}>
+                                                {a.value} {a.metric ? `(${a.metric})` : ''}
+                                              </option>
+                                            ))}
+                                            {/* Keep current custom value if not in attributes */}
+                                            {row.specs[k] && !knownAttrs.some((a: any) => a.value === row.specs[k]) && (
+                                              <option value={row.specs[k]}>{row.specs[k]} (Custom)</option>
+                                            )}
+                                          </select>
+                                        ) : (
+                                          <input 
+                                            type="text" 
+                                            value={row.specs[k] || ''} 
+                                            onChange={(e) => {
+                                              const updatedSpecs = { ...row.specs, [k]: e.target.value };
+                                              const updated = [...newProdPricingMatrix];
+                                              updated[rIdx] = { ...updated[rIdx], specs: updatedSpecs };
+                                              setNewProdPricingMatrix(updated);
+                                            }}
+                                            placeholder="Option Value"
+                                            style={{ border: 'none', background: 'transparent', padding: '4px 8px', fontSize: '12px', color: 'var(--text-primary)', outline: 'none', width: '110px' }}
+                                          />
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+
+                                  {/* Add new spec key from Global Options or manual */}
+                                  <select
+                                    value=""
+                                    onChange={(e) => {
+                                      const keyName = e.target.value;
+                                      if (keyName === '__CUSTOM__') {
+                                        const customName = prompt('Enter custom option name:');
+                                        if (customName && customName.trim()) {
+                                          const updatedSpecs = { ...row.specs, [customName.trim()]: '' };
+                                          const updated = [...newProdPricingMatrix];
+                                          updated[rIdx] = { ...updated[rIdx], specs: updatedSpecs };
+                                          setNewProdPricingMatrix(updated);
+                                        }
+                                      } else if (keyName) {
+                                        const opt = globalOptions.find((o: any) => o.name === keyName);
+                                        const defaultVal = opt?.attributes?.[0]?.value || '';
+                                        const updatedSpecs = { ...row.specs, [keyName]: defaultVal };
                                         const updated = [...newProdPricingMatrix];
                                         updated[rIdx] = { ...updated[rIdx], specs: updatedSpecs };
                                         setNewProdPricingMatrix(updated);
-                                      }}
-                                      style={{ border: 'none', background: 'transparent', padding: '4px 8px', fontSize: '12px', color: 'var(--text-primary)', outline: 'none', width: '100px' }}
-                                    />
-                                  </div>
-                                ))}
+                                      }
+                                    }}
+                                    style={{ fontSize: '11px', padding: '3px 8px', background: 'transparent', border: '1px dashed var(--border-color)', borderRadius: '4px', color: 'var(--accent-primary)', cursor: 'pointer' }}
+                                  >
+                                    <option value="">+ Add Option</option>
+                                    {globalOptions
+                                      .filter((o: any) => !specKeys.includes(o.name))
+                                      .map((o: any) => (
+                                        <option key={o.id} value={o.name}>{o.name}</option>
+                                      ))}
+                                    <option value="__CUSTOM__">+ Custom Attribute Name...</option>
+                                  </select>
+                                </div>
 
-                                {/* Add new spec key to this row */}
+                                {/* Price Field */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '130px' }}>
+                                  <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>$</span>
+                                  <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    className="input-field" 
+                                    value={row.price} 
+                                    onChange={(e) => {
+                                      const updated = [...newProdPricingMatrix];
+                                      updated[rIdx] = { ...updated[rIdx], price: e.target.value };
+                                      setNewProdPricingMatrix(updated);
+                                    }}
+                                    placeholder="Final Price"
+                                    style={{ padding: '5px 8px', fontWeight: '700', color: '#15803d' }}
+                                  />
+                                </div>
+
+                                {/* Delete Row */}
                                 <button 
                                   type="button" 
-                                  onClick={() => {
-                                    const keyName = prompt('Enter option group name for this condition (e.g. Coating, Sides, Qty):');
-                                    if (keyName && keyName.trim()) {
-                                      const updatedSpecs = { ...row.specs, [keyName.trim()]: '' };
-                                      const updated = [...newProdPricingMatrix];
-                                      updated[rIdx] = { ...updated[rIdx], specs: updatedSpecs };
-                                      setNewProdPricingMatrix(updated);
-                                    }
-                                  }}
-                                  style={{ fontSize: '11px', padding: '4px 8px', background: 'transparent', border: '1px dashed var(--border-color)', borderRadius: '4px', color: 'var(--accent-primary)', cursor: 'pointer' }}
-                                  title="Add another condition column to this row"
+                                  onClick={() => setNewProdPricingMatrix(newProdPricingMatrix.filter((_, i) => i !== rIdx))}
+                                  style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
+                                  title="Delete row"
                                 >
-                                  + Option
+                                  <Trash2 size={12} />
                                 </button>
                               </div>
-
-                              {/* Price Field */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '140px' }}>
-                                <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>$</span>
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  className="input-field" 
-                                  value={row.price} 
-                                  onChange={(e) => {
-                                    const updated = [...newProdPricingMatrix];
-                                    updated[rIdx] = { ...updated[rIdx], price: e.target.value };
-                                    setNewProdPricingMatrix(updated);
-                                  }}
-                                  placeholder="Final Price"
-                                  style={{ padding: '6px 8px', fontWeight: '700', color: '#15803d' }}
-                                />
-                              </div>
-
-                              {/* Delete Row */}
-                              <button 
-                                type="button" 
-                                onClick={() => setNewProdPricingMatrix(newProdPricingMatrix.filter((_, i) => i !== rIdx))}
-                                style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
-                                title="Delete row"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

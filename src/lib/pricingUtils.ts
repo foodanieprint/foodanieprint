@@ -156,14 +156,6 @@ export function calculateDynamicPrice(
   // PRIORITY 2: Dynamic Proportional / Option-based calculation
   let basePrice = Number(product.basePrice) || 0;
 
-  // Check if any selected attribute defines isBasePrice
-  Object.entries(selectedSpecs).forEach(([group, value]) => {
-    const match = product.specs?.find((s: any) => s.group === group && s.value === value);
-    if (match && match.isBasePrice) {
-      basePrice = Number(match.priceMarkup);
-    }
-  });
-
   // Detect Size specs
   const sizeGroupKey = Object.keys(selectedSpecs).find(
     (k) =>
@@ -172,12 +164,35 @@ export function calculateDynamicPrice(
       k.toLowerCase() === 'tamano' ||
       k.toLowerCase() === 'dimensions'
   );
+  const activeSizeVal = sizeGroupKey ? selectedSpecs[sizeGroupKey] : null;
+
+  // Helper to find spec that matches group + value, prioritizing matching parentValue (activeSizeVal)
+  const findMatchingSpec = (group: string, value: string) => {
+    const candidateSpecs = (product.specs || []).filter(
+      (s: any) => s.group === group && s.value === value
+    );
+    if (candidateSpecs.length === 0) return null;
+    if (activeSizeVal) {
+      const parentMatch = candidateSpecs.find((s: any) => s.parentValue === activeSizeVal);
+      if (parentMatch) return parentMatch;
+    }
+    const globalMatch = candidateSpecs.find((s: any) => !s.parentValue);
+    return globalMatch || candidateSpecs[0];
+  };
+
+  // Check if any selected attribute defines isBasePrice
+  Object.entries(selectedSpecs).forEach(([group, value]) => {
+    const match = findMatchingSpec(group, value);
+    if (match && match.isBasePrice) {
+      basePrice = Number(match.priceMarkup);
+    }
+  });
 
   let sizeMarkup = 0;
   let sizeFoundAndParsed = false;
 
-  if (sizeGroupKey) {
-    const selectedSizeVal = selectedSpecs[sizeGroupKey];
+  if (sizeGroupKey && activeSizeVal) {
+    const selectedSizeVal = activeSizeVal;
     const sizeSpecsList = product.specs?.filter((s: any) => s.group === sizeGroupKey) || [];
     const currentSpec = sizeSpecsList.find((s: any) => s.value === selectedSizeVal);
 
@@ -232,7 +247,7 @@ export function calculateDynamicPrice(
   const baseForMarkup = basePrice + sizeMarkup;
 
   Object.entries(selectedSpecs).forEach(([group, value]) => {
-    const match = product.specs?.find((s: any) => s.group === group && s.value === value);
+    const match = findMatchingSpec(group, value);
     if (match) {
       if (match.isBasePrice) return;
       if (sizeFoundAndParsed && (group.toLowerCase() === 'size' || group.toLowerCase() === 'tamaño')) return;

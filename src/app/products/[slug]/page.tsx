@@ -198,8 +198,23 @@ function ProductDetailContent() {
     );
   }
 
-  // Agrupar especificaciones por categoría/grupo para el UI
-  const specGroups = product.specs.reduce((acc: any, spec: any) => {
+  // Detect selected size for filtering child specs (e.g. parentValue matching)
+  const sizeKey = Object.keys(selectedSpecs).find(
+    (k) =>
+      k.toLowerCase() === 'size' ||
+      k.toLowerCase() === 'tamaño' ||
+      k.toLowerCase() === 'tamano' ||
+      k.toLowerCase() === 'dimensions'
+  );
+  const activeSelectedSize = sizeKey ? selectedSpecs[sizeKey] : null;
+
+  // Agrupar especificaciones por categoría/grupo para el UI, filtrando por tamaño padre si aplica
+  const specGroups = (product.specs || []).reduce((acc: any, spec: any) => {
+    // Si la especificación tiene un parentValue (pertenece a un tamaño específico),
+    // solo se muestra si coincide con el tamaño actualmente seleccionado por el cliente
+    if (spec.parentValue && activeSelectedSize && spec.parentValue !== activeSelectedSize) {
+      return acc;
+    }
     if (!acc[spec.group]) acc[spec.group] = [];
     acc[spec.group].push(spec);
     return acc;

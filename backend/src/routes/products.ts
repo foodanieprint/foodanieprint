@@ -218,6 +218,7 @@ productsRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
             position: typeof spec.position === 'number' ? spec.position : idx,
             horizontal: typeof spec.horizontal === 'number' ? spec.horizontal : (parseFloat(spec.horizontal) || 0),
             vertical: typeof spec.vertical === 'number' ? spec.vertical : (parseFloat(spec.vertical) || 0),
+            parentValue: spec.parentValue || null,
           }));
 
           await tx.productSpec.createMany({
@@ -315,6 +316,7 @@ productsRouter.put('/', async (req: AuthenticatedRequest, res: Response) => {
                 position: typeof spec.position === 'number' ? spec.position : idx,
                 horizontal: typeof spec.horizontal === 'number' ? spec.horizontal : (parseFloat(spec.horizontal) || 0),
                 vertical: typeof spec.vertical === 'number' ? spec.vertical : (parseFloat(spec.vertical) || 0),
+                parentValue: spec.parentValue || null,
               }))
             }
           }

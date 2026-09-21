@@ -9,9 +9,13 @@ export interface MockProductSpec {
   group: string;
   value: string;
   priceMarkup: number;
+  markupType?: string;
+  isBasePrice?: boolean;
+  imageUrl?: string | null;
   position?: number;
   horizontal?: number;
   vertical?: number;
+  parentValue?: string | null;
 }
 
 export interface MockProduct {
@@ -538,9 +542,13 @@ export const mockDb = {
         group: spec.group,
         value: spec.value,
         priceMarkup: parseFloat(spec.priceMarkup || '0'),
+        markupType: spec.markupType || 'FLAT',
+        isBasePrice: spec.isBasePrice ?? false,
+        imageUrl: spec.imageUrl || null,
         position: typeof spec.position === 'number' ? spec.position : idx,
         horizontal: typeof spec.horizontal === 'number' ? spec.horizontal : (parseFloat(spec.horizontal) || 0),
         vertical: typeof spec.vertical === 'number' ? spec.vertical : (parseFloat(spec.vertical) || 0),
+        parentValue: spec.parentValue || null,
       })),
       globalOptionIds: data.globalOptionIds || [],
       pricingMatrix: data.pricingMatrix || null,
@@ -580,9 +588,13 @@ export const mockDb = {
           group: spec.group,
           value: spec.value,
           priceMarkup: parseFloat(spec.priceMarkup || '0'),
+          markupType: spec.markupType || 'FLAT',
+          isBasePrice: spec.isBasePrice ?? false,
+          imageUrl: spec.imageUrl || null,
           position: typeof spec.position === 'number' ? spec.position : sIdx,
           horizontal: typeof spec.horizontal === 'number' ? spec.horizontal : (parseFloat(spec.horizontal) || 0),
           vertical: typeof spec.vertical === 'number' ? spec.vertical : (parseFloat(spec.vertical) || 0),
+          parentValue: spec.parentValue || null,
         })),
         globalOptionIds: data.globalOptionIds || [],
         pricingMatrix: data.pricingMatrix !== undefined ? data.pricingMatrix : MOCK_PRODUCTS[idx].pricingMatrix,
