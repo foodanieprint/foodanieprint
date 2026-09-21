@@ -2209,6 +2209,7 @@ export default function AdminPage() {
                       }
                       // For non-variant specs, show if it belongs to this variant value, or if it has no parentValue
                       return row.parentValue === activeSizeFilter || !row.parentValue;
+                    })
                     .map(({ row, originalIdx: idx }) => (
                     <div 
                       key={idx} 
