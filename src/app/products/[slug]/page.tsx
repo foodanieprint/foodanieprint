@@ -189,15 +189,6 @@ function ProductDetailContent() {
 
 
 
-  if (loading) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '4px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
-        <p style={{ color: 'var(--text-secondary)' }}>Loading product specifications...</p>
-      </div>
-    );
-  }
-
   // Detect selected size for filtering child specs (e.g. parentValue matching)
   const sizeKey = Object.keys(selectedSpecs).find(
     (k) =>
@@ -209,10 +200,11 @@ function ProductDetailContent() {
   const activeSelectedSize = sizeKey ? selectedSpecs[sizeKey] : null;
 
   // Parse conditional exclusion rules
-  const exclusionRules = parseExclusionRules(product.exclusionRules);
+  const exclusionRules = product ? parseExclusionRules(product.exclusionRules) : [];
 
   // Auto-reconcile: if an active spec option becomes excluded due to a condition change,
-  // automatically fallback to the first available non-excluded option for that group
+  // automatically fallback to the first available non-excluded option for that group.
+  // CRITICAL: Must be called before any early returns (like `if (loading)`) to follow React Rules of Hooks!
   useEffect(() => {
     if (!product || !product.specs || exclusionRules.length === 0) return;
     let hasChanged = false;
@@ -241,6 +233,15 @@ function ProductDetailContent() {
       setSelectedSpecs(updatedSpecs);
     }
   }, [selectedSpecs, product, exclusionRules, activeSelectedSize]);
+
+  if (loading || !product) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '4px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', animation: 'spin 1s linear infinite' }}></div>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading product specifications...</p>
+      </div>
+    );
+  }
 
   // Agrupar especificaciones por categoría/grupo para el UI, filtrando por tamaño padre y reglas de exclusión
   const specGroups = (product.specs || []).reduce((acc: any, spec: any) => {
