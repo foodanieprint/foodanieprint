@@ -324,16 +324,36 @@ export function calculateDynamicPrice(
     }
   });
 
+  // Detect product groups order from product.specs (or fallback to appearance)
+  const groupOrderMap = new Map<string, number>();
+  (product.specs || []).forEach((s: any, idx: number) => {
+    const normG = normalizeVal(s.group);
+    if (!groupOrderMap.has(normG)) {
+      const pos = typeof s.position === 'number' ? s.position : idx;
+      groupOrderMap.set(normG, pos);
+    }
+  });
+
+  // Collect and sort percentage specs in the order they are configured on the product
+  percentageSpecs.sort((a, b) => {
+    const posA = groupOrderMap.get(normalizeVal(a.match.group)) ?? 999;
+    const posB = groupOrderMap.get(normalizeVal(b.match.group)) ?? 999;
+    return posA - posB;
+  });
+
   // Subtotal before applying percentage markups (e.g. Size $20 + Qty $10 = $30)
   const subtotalBeforePercent = basePrice + sizeMarkup + nonPercentageMarkups;
 
-  // Second pass: apply percentage markups to the subtotal (e.g. 10% of $30 = $3 => $33)
-  let percentageMarkups = 0;
+  // Second pass: apply each percentage markup cumulatively onto the running total
+  // (e.g. Subtotal = $20.99, Sides Front & Back +10% => $20.99 + $2.10 = $23.09.
+  // Then Turnaround Time 5 Days +10% => 10% of $23.09 = +$2.31 => $25.40).
+  let runningTotal = subtotalBeforePercent;
   percentageSpecs.forEach(({ markup }) => {
-    percentageMarkups += (subtotalBeforePercent * markup) / 100;
+    const addedAmount = (runningTotal * markup) / 100;
+    runningTotal += addedAmount;
   });
 
-  const finalUnitPrice = subtotalBeforePercent + percentageMarkups;
+  const finalUnitPrice = runningTotal;
 
   return {
     unitPrice: Math.max(0, finalUnitPrice),
