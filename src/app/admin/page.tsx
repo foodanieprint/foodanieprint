@@ -162,6 +162,10 @@ export default function AdminPage() {
   const [showPricingMatrixSection, setShowPricingMatrixSection] = useState(false);
   const [selectedMatrixOptionIds, setSelectedMatrixOptionIds] = useState<string[]>([]);
 
+  // Reglas de Exclusión / Dependencias Condicionales de Opciones
+  const [newProdExclusionRules, setNewProdExclusionRules] = useState<Array<{ id: string; ifGroup: string; ifValue: string; thenExcludeGroup: string; thenExcludeValue: string }>>([]);
+  const [showExclusionRulesSection, setShowExclusionRulesSection] = useState(false);
+
   // Estado del creador de Global Options & Attributes
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
   const [newOptionName, setNewOptionName] = useState('');
@@ -531,6 +535,7 @@ export default function AdminPage() {
         })),
         globalOptionIds: selectedGlobalOptionIds,
         pricingMatrix: newProdPricingMatrix.length > 0 ? newProdPricingMatrix.map(r => ({ specs: r.specs, price: parseFloat(r.price) || 0 })) : null,
+        exclusionRules: newProdExclusionRules.length > 0 ? newProdExclusionRules : null,
         categoryId: newProdCategoryId || null,
         isFeatured: newProdIsFeatured
       };
@@ -560,6 +565,8 @@ export default function AdminPage() {
         setSelectedGlobalOptionIds([]);
         setNewProdPricingMatrix([]);
         setShowPricingMatrixSection(false);
+        setNewProdExclusionRules([]);
+        setShowExclusionRulesSection(false);
         setNewProdSpecs([
           { group: 'Material', value: 'Premium Matte Paper', horizontal: '0', vertical: '0', priceMarkup: '0', markupType: 'FLAT', isBasePrice: false, imageUrl: '' },
           { group: 'Finish', value: 'Satin Glossy', horizontal: '0', vertical: '0', priceMarkup: '3.50', markupType: 'FLAT', isBasePrice: false, imageUrl: '' }
@@ -659,6 +666,35 @@ export default function AdminPage() {
     setNewProdPricingMatrix(matrixRows);
     setShowPricingMatrixSection(matrixRows.length > 0);
 
+    // Load conditional exclusion rules if present
+    let rules: any[] = [];
+    if (Array.isArray(product.exclusionRules)) {
+      rules = product.exclusionRules.map((r: any, idx: number) => ({
+        id: r.id || `rule-${idx}`,
+        ifGroup: r.ifGroup || '',
+        ifValue: r.ifValue || '',
+        thenExcludeGroup: r.thenExcludeGroup || '',
+        thenExcludeValue: r.thenExcludeValue || ''
+      }));
+    } else if (typeof product.exclusionRules === 'string') {
+      try {
+        const parsed = JSON.parse(product.exclusionRules);
+        if (Array.isArray(parsed)) {
+          rules = parsed.map((r: any, idx: number) => ({
+            id: r.id || `rule-${idx}`,
+            ifGroup: r.ifGroup || '',
+            ifValue: r.ifValue || '',
+            thenExcludeGroup: r.thenExcludeGroup || '',
+            thenExcludeValue: r.thenExcludeValue || ''
+          }));
+        }
+      } catch {
+        rules = [];
+      }
+    }
+    setNewProdExclusionRules(rules);
+    setShowExclusionRulesSection(rules.length > 0);
+
     setEditingProductId(product.id);
     setActiveTab('create-product');
   };
@@ -679,6 +715,8 @@ export default function AdminPage() {
     setSelectedGlobalOptionIds([]);
     setNewProdPricingMatrix([]);
     setShowPricingMatrixSection(false);
+    setNewProdExclusionRules([]);
+    setShowExclusionRulesSection(false);
     setActiveSizeFilter('4x6');
     setNewProdSpecs([
       { group: 'Size', value: '4x6', horizontal: '4', vertical: '6', priceMarkup: '58.99', markupType: 'FLAT', isBasePrice: true, imageUrl: '' },
@@ -2656,6 +2694,325 @@ export default function AdminPage() {
                               </div>
                             );
                           })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* SECCIÓN REGLAS DE EXCLUSIÓN / DEPENDENCIAS CONDICIONALES */}
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', color: 'var(--text-primary)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>⚡ Option Dependencies & Exclusions</span>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', background: 'rgba(234, 88, 12, 0.1)', color: '#ea580c', padding: '2px 8px', borderRadius: '12px' }}>
+                        Conditional Rules
+                      </span>
+                    </h4>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                      Hide or disable incompatible options when a customer chooses a specific spec (e.g. <em>If Qty is 300, exclude Turnaround: 2 Business Days</em>).
+                    </p>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-sm" 
+                      onClick={() => setShowExclusionRulesSection(!showExclusionRulesSection)}
+                    >
+                      {showExclusionRulesSection ? 'Hide Rules' : 'Configure Rules'}
+                    </button>
+                    {showExclusionRulesSection && (
+                      <button 
+                        type="button" 
+                        className="btn btn-primary btn-sm" 
+                        onClick={() => {
+                          // Extract distinct groups from specs
+                          const distinctGroups = Array.from(new Set(newProdSpecs.map(s => s.group))).filter(Boolean);
+                          const firstGrp = distinctGroups[0] || 'Qty';
+                          const firstVal = newProdSpecs.find(s => s.group === firstGrp)?.value || '';
+                          const secondGrp = distinctGroups[1] || distinctGroups[0] || 'Turnaround Time';
+                          const secondVal = newProdSpecs.find(s => s.group === secondGrp)?.value || '';
+
+                          setNewProdExclusionRules([
+                            ...newProdExclusionRules,
+                            {
+                              id: `rule-${Date.now()}`,
+                              ifGroup: firstGrp,
+                              ifValue: firstVal,
+                              thenExcludeGroup: secondGrp,
+                              thenExcludeValue: secondVal
+                            }
+                          ]);
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Plus size={12} /> Add Exclusion Rule
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {showExclusionRulesSection && (
+                  <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '16px' }}>
+                    {/* Help notice */}
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', background: 'rgba(234, 88, 12, 0.08)', border: '1px solid rgba(234, 88, 12, 0.25)', padding: '10px 14px', borderRadius: '6px' }}>
+                      💡 <strong>How it works:</strong> If the client selects the condition option on the left, the client interface will automatically hide the target option on the right and prevent conflicting configurations.
+                    </div>
+
+                    {newProdExclusionRules.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                        No conditional exclusion rules configured yet for this product.
+                        <div style={{ marginTop: '12px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => {
+                              const distinctGroups = Array.from(new Set(newProdSpecs.map(s => s.group))).filter(Boolean);
+                              const ifG = distinctGroups.find(g => g.toLowerCase().includes('qty') || g.toLowerCase().includes('cant')) || distinctGroups[0] || 'Qty';
+                              const ifV = newProdSpecs.filter(s => s.group === ifG).slice(-1)[0]?.value || '300';
+                              const thenG = distinctGroups.find(g => g.toLowerCase().includes('turnaround') || g.toLowerCase().includes('time') || g.toLowerCase().includes('entrega')) || distinctGroups[1] || 'Turnaround Time';
+                              const thenV = newProdSpecs.find(s => s.group === thenG)?.value || '2 Business Days';
+
+                              setNewProdExclusionRules([
+                                {
+                                  id: `rule-${Date.now()}`,
+                                  ifGroup: ifG,
+                                  ifValue: ifV,
+                                  thenExcludeGroup: thenG,
+                                  thenExcludeValue: thenV
+                                }
+                              ]);
+                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            <Plus size={14} /> + Create First Exclusion Rule
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', padding: '0 4px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                            Active Rules: <strong>{newProdExclusionRules.length}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm('Clear all exclusion rules?')) {
+                                setNewProdExclusionRules([]);
+                              }
+                            }}
+                            style={{ fontSize: '11px', color: 'var(--danger)', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <Trash2 size={12} /> Clear All Rules
+                          </button>
+                        </div>
+
+                        {/* List of rules */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {(() => {
+                            // Extract distinct groups and options from specs and global options
+                            const distinctGroups = Array.from(new Set([
+                              ...newProdSpecs.map(s => s.group),
+                              ...globalOptions.map((o: any) => o.name)
+                            ])).filter(Boolean);
+
+                            const getGroupValues = (grp: string) => {
+                              const fromSpecs = newProdSpecs.filter(s => s.group.toLowerCase() === grp.toLowerCase()).map(s => s.value);
+                              const fromGlobal = globalOptions.find((o: any) => o.name.toLowerCase() === grp.toLowerCase())?.attributes?.map((a: any) => a.value) || [];
+                              return Array.from(new Set([...fromSpecs, ...fromGlobal])).filter(Boolean);
+                            };
+
+                            return newProdExclusionRules.map((rule, rIdx) => {
+                              const ifValues = getGroupValues(rule.ifGroup);
+                              const thenValues = getGroupValues(rule.thenExcludeGroup);
+
+                              return (
+                                <div 
+                                  key={rule.id || rIdx}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    background: '#ffffff',
+                                    padding: '12px 16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border-color)',
+                                    flexWrap: 'wrap',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                                  }}
+                                >
+                                  {/* Rule Index badge */}
+                                  <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-muted)', width: '26px' }}>
+                                    #{rIdx + 1}
+                                  </div>
+
+                                  {/* IF CONDITION BLOCK */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#0284c7', background: 'rgba(2, 132, 199, 0.1)', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                      IF
+                                    </span>
+
+                                    {/* ifGroup Select */}
+                                    <select
+                                      value={rule.ifGroup}
+                                      onChange={(e) => {
+                                        const nextGroup = e.target.value;
+                                        const nextVals = getGroupValues(nextGroup);
+                                        const updated = [...newProdExclusionRules];
+                                        updated[rIdx] = {
+                                          ...updated[rIdx],
+                                          ifGroup: nextGroup,
+                                          ifValue: nextVals[0] || ''
+                                        };
+                                        setNewProdExclusionRules(updated);
+                                      }}
+                                      className="input-field"
+                                      style={{ padding: '6px 10px', fontSize: '13px', fontWeight: '600', minWidth: '130px' }}
+                                    >
+                                      {distinctGroups.map((grp) => (
+                                        <option key={`if-${grp}`} value={grp}>{grp}</option>
+                                      ))}
+                                    </select>
+
+                                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                                      IS
+                                    </span>
+
+                                    {/* ifValue Select / Input */}
+                                    {ifValues.length > 0 ? (
+                                      <select
+                                        value={rule.ifValue}
+                                        onChange={(e) => {
+                                          const updated = [...newProdExclusionRules];
+                                          updated[rIdx] = { ...updated[rIdx], ifValue: e.target.value };
+                                          setNewProdExclusionRules(updated);
+                                        }}
+                                        className="input-field"
+                                        style={{ padding: '6px 10px', fontSize: '13px', minWidth: '130px' }}
+                                      >
+                                        <option value="">-- Choose Value --</option>
+                                        {ifValues.map((val) => (
+                                          <option key={`ifVal-${val}`} value={val}>{val}</option>
+                                        ))}
+                                        {rule.ifValue && !ifValues.includes(rule.ifValue) && (
+                                          <option value={rule.ifValue}>{rule.ifValue} (Custom)</option>
+                                        )}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={rule.ifValue}
+                                        onChange={(e) => {
+                                          const updated = [...newProdExclusionRules];
+                                          updated[rIdx] = { ...updated[rIdx], ifValue: e.target.value };
+                                          setNewProdExclusionRules(updated);
+                                        }}
+                                        placeholder="Option Value"
+                                        className="input-field"
+                                        style={{ padding: '6px 10px', fontSize: '13px', width: '130px' }}
+                                      />
+                                    )}
+                                  </div>
+
+                                  {/* ARROW SEPARATOR */}
+                                  <div style={{ display: 'flex', alignItems: 'center', color: '#ea580c', fontWeight: 'bold', fontSize: '14px' }}>
+                                    ➔
+                                  </div>
+
+                                  {/* THEN EXCLUDE BLOCK */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
+                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#dc2626', background: 'rgba(220, 38, 38, 0.1)', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                      EXCLUDE
+                                    </span>
+
+                                    {/* thenExcludeGroup Select */}
+                                    <select
+                                      value={rule.thenExcludeGroup}
+                                      onChange={(e) => {
+                                        const nextGroup = e.target.value;
+                                        const nextVals = getGroupValues(nextGroup);
+                                        const updated = [...newProdExclusionRules];
+                                        updated[rIdx] = {
+                                          ...updated[rIdx],
+                                          thenExcludeGroup: nextGroup,
+                                          thenExcludeValue: nextVals[0] || ''
+                                        };
+                                        setNewProdExclusionRules(updated);
+                                      }}
+                                      className="input-field"
+                                      style={{ padding: '6px 10px', fontSize: '13px', fontWeight: '600', minWidth: '140px' }}
+                                    >
+                                      {distinctGroups.map((grp) => (
+                                        <option key={`then-${grp}`} value={grp}>{grp}</option>
+                                      ))}
+                                    </select>
+
+                                    {/* thenExcludeValue Select / Input */}
+                                    {thenValues.length > 0 ? (
+                                      <select
+                                        value={rule.thenExcludeValue}
+                                        onChange={(e) => {
+                                          const updated = [...newProdExclusionRules];
+                                          updated[rIdx] = { ...updated[rIdx], thenExcludeValue: e.target.value };
+                                          setNewProdExclusionRules(updated);
+                                        }}
+                                        className="input-field"
+                                        style={{ padding: '6px 10px', fontSize: '13px', minWidth: '140px' }}
+                                      >
+                                        <option value="">-- Choose Value to Exclude --</option>
+                                        {thenValues.map((val) => (
+                                          <option key={`thenVal-${val}`} value={val}>{val}</option>
+                                        ))}
+                                        {rule.thenExcludeValue && !thenValues.includes(rule.thenExcludeValue) && (
+                                          <option value={rule.thenExcludeValue}>{rule.thenExcludeValue} (Custom)</option>
+                                        )}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={rule.thenExcludeValue}
+                                        onChange={(e) => {
+                                          const updated = [...newProdExclusionRules];
+                                          updated[rIdx] = { ...updated[rIdx], thenExcludeValue: e.target.value };
+                                          setNewProdExclusionRules(updated);
+                                        }}
+                                        placeholder="Value to Exclude"
+                                        className="input-field"
+                                        style={{ padding: '6px 10px', fontSize: '13px', width: '140px' }}
+                                      />
+                                    )}
+                                  </div>
+
+                                  {/* Delete Rule Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setNewProdExclusionRules(newProdExclusionRules.filter((_, i) => i !== rIdx));
+                                    }}
+                                    style={{
+                                      width: '32px',
+                                      height: '32px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      background: 'rgba(239, 68, 68, 0.1)',
+                                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                                      color: 'var(--danger)',
+                                      borderRadius: 'var(--radius-sm)',
+                                      cursor: 'pointer'
+                                    }}
+                                    title="Delete exclusion rule"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              );
+                            });
+                          })()}
                         </div>
                       </div>
                     )}

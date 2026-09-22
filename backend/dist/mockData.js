@@ -468,6 +468,7 @@ export const mockDb = {
             })),
             globalOptionIds: data.globalOptionIds || [],
             pricingMatrix: data.pricingMatrix || null,
+            exclusionRules: data.exclusionRules || null,
             categoryId: data.categoryId || null
         };
         MOCK_PRODUCTS.unshift(newProduct);
@@ -511,6 +512,7 @@ export const mockDb = {
                 })),
                 globalOptionIds: data.globalOptionIds || [],
                 pricingMatrix: data.pricingMatrix !== undefined ? data.pricingMatrix : MOCK_PRODUCTS[idx].pricingMatrix,
+                exclusionRules: data.exclusionRules !== undefined ? data.exclusionRules : MOCK_PRODUCTS[idx].exclusionRules,
                 categoryId: data.categoryId || null
             };
             return MOCK_PRODUCTS[idx];

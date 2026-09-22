@@ -7,7 +7,7 @@ import {
   Flame, Award, ArrowLeft, Paintbrush, Upload, CheckCircle2, ShieldCheck, HelpCircle, ChevronDown,
   ShoppingCart, X
 } from 'lucide-react';
-import { calculateDynamicPrice } from '@/lib/pricingUtils';
+import { calculateDynamicPrice, parseExclusionRules, isOptionExcluded } from '@/lib/pricingUtils';
 
 function ProductDetailContent() {
   const params = useParams();
@@ -208,11 +208,49 @@ function ProductDetailContent() {
   );
   const activeSelectedSize = sizeKey ? selectedSpecs[sizeKey] : null;
 
-  // Agrupar especificaciones por categoría/grupo para el UI, filtrando por tamaño padre si aplica
+  // Parse conditional exclusion rules
+  const exclusionRules = parseExclusionRules(product.exclusionRules);
+
+  // Auto-reconcile: if an active spec option becomes excluded due to a condition change,
+  // automatically fallback to the first available non-excluded option for that group
+  useEffect(() => {
+    if (!product || !product.specs || exclusionRules.length === 0) return;
+    let hasChanged = false;
+    const updatedSpecs = { ...selectedSpecs };
+
+    // Get groups
+    const allGroups = Array.from(new Set((product.specs || []).map((s: any) => s.group)));
+    for (const grp of allGroups) {
+      const currentVal = updatedSpecs[grp as string];
+      if (currentVal && isOptionExcluded(grp as string, currentVal, updatedSpecs, exclusionRules)) {
+        // Find valid options for this group
+        const groupSpecs = (product.specs || []).filter((s: any) => {
+          if (s.group !== grp) return false;
+          if (s.parentValue && activeSelectedSize && s.parentValue !== activeSelectedSize) return false;
+          return !isOptionExcluded(grp as string, s.value, updatedSpecs, exclusionRules);
+        });
+
+        if (groupSpecs.length > 0) {
+          updatedSpecs[grp as string] = groupSpecs[0].value;
+          hasChanged = true;
+        }
+      }
+    }
+
+    if (hasChanged) {
+      setSelectedSpecs(updatedSpecs);
+    }
+  }, [selectedSpecs, product, exclusionRules, activeSelectedSize]);
+
+  // Agrupar especificaciones por categoría/grupo para el UI, filtrando por tamaño padre y reglas de exclusión
   const specGroups = (product.specs || []).reduce((acc: any, spec: any) => {
     // Si la especificación tiene un parentValue (pertenece a un tamaño específico),
     // solo se muestra si coincide con el tamaño actualmente seleccionado por el cliente
     if (spec.parentValue && activeSelectedSize && spec.parentValue !== activeSelectedSize) {
+      return acc;
+    }
+    // Si la opción está excluida condicionalmente por las reglas del producto, se oculta del selector
+    if (isOptionExcluded(spec.group, spec.value, selectedSpecs, exclusionRules)) {
       return acc;
     }
     if (!acc[spec.group]) acc[spec.group] = [];

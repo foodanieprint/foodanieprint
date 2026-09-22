@@ -32,6 +32,7 @@ export interface MockProduct {
   specs: MockProductSpec[];
   globalOptionIds?: string[];
   pricingMatrix?: any;
+  exclusionRules?: any;
   categoryId?: string;
   isFeatured?: boolean;
 }
@@ -552,6 +553,7 @@ export const mockDb = {
       })),
       globalOptionIds: data.globalOptionIds || [],
       pricingMatrix: data.pricingMatrix || null,
+      exclusionRules: data.exclusionRules || null,
       categoryId: data.categoryId || null
     };
 
@@ -598,6 +600,7 @@ export const mockDb = {
         })),
         globalOptionIds: data.globalOptionIds || [],
         pricingMatrix: data.pricingMatrix !== undefined ? data.pricingMatrix : MOCK_PRODUCTS[idx].pricingMatrix,
+        exclusionRules: data.exclusionRules !== undefined ? data.exclusionRules : MOCK_PRODUCTS[idx].exclusionRules,
         categoryId: data.categoryId || null
       };
       return MOCK_PRODUCTS[idx];

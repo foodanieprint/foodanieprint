@@ -16,6 +16,59 @@ export interface PricingMatrixRow {
   price: number;                 // e.g. 10.00
 }
 
+export interface ExclusionRule {
+  id?: string;
+  ifGroup: string;         // e.g. "Qty"
+  ifValue: string;         // e.g. "300"
+  thenExcludeGroup: string;// e.g. "Turnaround Time"
+  thenExcludeValue: string;// e.g. "2 Business Days"
+}
+
+/**
+ * Parses exclusion rules safely from a product object.
+ */
+export function parseExclusionRules(rawRules: any): ExclusionRule[] {
+  if (!rawRules) return [];
+  if (Array.isArray(rawRules)) return rawRules;
+  if (typeof rawRules === 'string') {
+    try {
+      const parsed = JSON.parse(rawRules);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
+ * Checks whether a specific option (group + value) is currently excluded/disabled
+ * based on active selected specs and the product's exclusion rules.
+ */
+export function isOptionExcluded(
+  group: string,
+  value: string,
+  selectedSpecs: Record<string, string>,
+  exclusionRules: ExclusionRule[]
+): boolean {
+  if (!exclusionRules || exclusionRules.length === 0) return false;
+
+  return exclusionRules.some((rule) => {
+    // Check target match (case-insensitive)
+    if (normalizeVal(rule.thenExcludeGroup) !== normalizeVal(group)) return false;
+    if (normalizeVal(rule.thenExcludeValue) !== normalizeVal(value)) return false;
+
+    // Check condition match
+    // Find matching selected key for rule.ifGroup
+    const selectedKey = Object.keys(selectedSpecs).find(
+      (k) => normalizeVal(k) === normalizeVal(rule.ifGroup)
+    );
+    if (!selectedKey) return false;
+
+    return normalizeVal(selectedSpecs[selectedKey]) === normalizeVal(rule.ifValue);
+  });
+}
+
 /**
  * Extracts numeric dimensions and area from a spec value (e.g. "4x6", "4\" x 6\"", "5 x 7 in", "4*11")
  * or from explicit horizontal/vertical fields.
