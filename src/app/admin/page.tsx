@@ -149,6 +149,10 @@ export default function AdminPage() {
   const [variantBaseGroup, setVariantBaseGroup] = useState<string>('Size');
   const [modalVariantGroup, setModalVariantGroup] = useState<string>('Size');
   const [showAddVariantModal, setShowAddVariantModal] = useState<boolean>(false);
+  const [showDuplicateVariantModal, setShowDuplicateVariantModal] = useState<boolean>(false);
+  const [duplicateTargetSpec, setDuplicateTargetSpec] = useState<any>(null);
+  const [duplicateNewValue, setDuplicateNewValue] = useState<string>('');
+  const [duplicateNewPrice, setDuplicateNewPrice] = useState<string>('');
   const [newVariantValue, setNewVariantValue] = useState<string>('');
   const [newVariantBasePrice, setNewVariantBasePrice] = useState<string>('50.00');
   const [selectedVariantOptionNames, setSelectedVariantOptionNames] = useState<string[]>([]);
@@ -1895,9 +1899,9 @@ export default function AdminPage() {
                                 setVariantBaseGroup(vSpec.group);
                               }}
                               style={{
-                                width: '190px',
-                                minHeight: '110px',
-                                background: isSelected ? '#ffffff' : '#f1f5f9',
+                                width: '205px',
+                                minHeight: '115px',
+                                background: isSelected ? '#ffffff' : '#f8fafc',
                                 border: isSelected ? '2.5px solid var(--accent-primary)' : '1.5px solid #cbd5e1',
                                 borderRadius: '12px',
                                 display: 'flex',
@@ -1911,15 +1915,123 @@ export default function AdminPage() {
                                 position: 'relative'
                               }}
                             >
-                              {/* Active badge */}
+                              {/* Top Action Buttons (Duplicate & Delete) */}
+                              <div 
+                                style={{ 
+                                  position: 'absolute', 
+                                  top: '6px', 
+                                  right: '6px', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '4px',
+                                  zIndex: 2
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {/* Duplicate Button */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDuplicateTargetSpec(vSpec);
+                                    setDuplicateNewValue(`${vSpec.value} (Copy)`);
+                                    setDuplicateNewPrice(vSpec.priceMarkup || '0');
+                                    setShowDuplicateVariantModal(true);
+                                  }}
+                                  title={`Duplicate Option Variant ${vSpec.value} and all its child options`}
+                                  style={{
+                                    border: 'none',
+                                    background: '#f1f5f9',
+                                    color: '#475569',
+                                    borderRadius: '4px',
+                                    width: '24px',
+                                    height: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(0, 111, 66, 0.12)';
+                                    e.currentTarget.style.color = 'var(--accent-primary)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = '#f1f5f9';
+                                    e.currentTarget.style.color = '#475569';
+                                  }}
+                                >
+                                  <Copy size={12} />
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Are you sure you want to delete Option Variant "${vSpec.group}: ${vSpec.value}" and all its linked specifications?`)) {
+                                      // Remove base spec and all child specs linked to this parentValue
+                                      const filtered = newProdSpecs.filter(s => {
+                                        const isTargetBase = s.group === vSpec.group && s.value === vSpec.value && (s.isBasePrice || !s.parentValue);
+                                        const isTargetChild = s.parentValue === vSpec.value;
+                                        return !isTargetBase && !isTargetChild;
+                                      });
+                                      setNewProdSpecs(filtered);
+                                      if (activeSizeFilter === vSpec.value) {
+                                        const remainingBase = filtered.find(s => s.isBasePrice || (!s.parentValue && filtered.some(c => c.parentValue === s.value)));
+                                        setActiveSizeFilter(remainingBase ? remainingBase.value : '__ALL__');
+                                      }
+                                    }
+                                  }}
+                                  title={`Delete Option Variant ${vSpec.value}`}
+                                  style={{
+                                    border: 'none',
+                                    background: '#fee2e2',
+                                    color: '#ef4444',
+                                    borderRadius: '4px',
+                                    width: '24px',
+                                    height: '24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#fca5a5';
+                                    e.currentTarget.style.color = '#991b1b';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = '#fee2e2';
+                                    e.currentTarget.style.color = '#ef4444';
+                                  }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+
+                              {/* Active indicator badge on top left */}
                               {isSelected && (
-                                <div style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }} />
+                                <div 
+                                  title="Active variant"
+                                  style={{ 
+                                    position: 'absolute', 
+                                    top: '8px', 
+                                    left: '8px', 
+                                    width: '8px', 
+                                    height: '8px', 
+                                    borderRadius: '50%', 
+                                    background: 'var(--accent-primary)',
+                                    boxShadow: '0 0 0 2px rgba(0, 111, 66, 0.2)'
+                                  }} 
+                                />
                               )}
+
                               {/* Display each card's real group name (e.g. Size, Qty, Orientation) */}
                               <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
                                 {vSpec.group}
                               </span>
-                              <span style={{ fontSize: '28px', fontWeight: '800', color: isSelected ? 'var(--text-primary)' : '#64748b', letterSpacing: '-0.02em', lineHeight: 1.1, textAlign: 'center' }}>
+                              <span style={{ fontSize: '26px', fontWeight: '800', color: isSelected ? 'var(--text-primary)' : '#64748b', letterSpacing: '-0.02em', lineHeight: 1.1, textAlign: 'center', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {vSpec.value}
                               </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
@@ -3830,6 +3942,189 @@ export default function AdminPage() {
                 Create Option Variant
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: DUPLICATE OPTION VARIANT */}
+      {showDuplicateVariantModal && duplicateTargetSpec && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 999999,
+          background: 'rgba(15, 23, 42, 0.65)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          overflow: 'hidden',
+          overscrollBehavior: 'contain',
+          pointerEvents: 'auto'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            maxWidth: '500px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid var(--border-color)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Copy size={16} color="var(--accent-primary)" /> Duplicate Option Variant
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                  Clone <strong>{duplicateTargetSpec.group}: {duplicateTargetSpec.value}</strong> along with all of its configured options and markups.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDuplicateVariantModal(false);
+                  setDuplicateTargetSpec(null);
+                }}
+                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!duplicateNewValue.trim()) {
+                  alert('Please enter a new value for the duplicated variant.');
+                  return;
+                }
+                const cleanNewVal = duplicateNewValue.trim();
+                const targetVal = duplicateTargetSpec.value;
+
+                // Check if variant with same group and value already exists
+                const alreadyExists = newProdSpecs.some(s => s.group.toLowerCase() === duplicateTargetSpec.group.toLowerCase() && s.value.toLowerCase() === cleanNewVal.toLowerCase());
+                if (alreadyExists) {
+                  alert(`A variant named "${cleanNewVal}" already exists in ${duplicateTargetSpec.group}.`);
+                  return;
+                }
+
+                // 1. Create duplicate of base variant spec
+                const matchDims = cleanNewVal.match(/([0-9.]+)\s*(?:x|by|\*)\s*([0-9.]+)/i);
+                const horiz = matchDims ? matchDims[1] : (duplicateTargetSpec.horizontal || '0');
+                const vert = matchDims ? matchDims[2] : (duplicateTargetSpec.vertical || '0');
+
+                const newBaseSpec = {
+                  group: duplicateTargetSpec.group,
+                  value: cleanNewVal,
+                  horizontal: horiz,
+                  vertical: vert,
+                  priceMarkup: duplicateNewPrice || duplicateTargetSpec.priceMarkup || '0',
+                  markupType: duplicateTargetSpec.markupType || 'FLAT',
+                  isBasePrice: true,
+                  imageUrl: duplicateTargetSpec.imageUrl || ''
+                };
+
+                // 2. Clone all child specifications linked to targetVal
+                const childSpecsToClone = newProdSpecs.filter(s => s.parentValue === targetVal);
+                const clonedChildren = childSpecsToClone.map(child => ({
+                  group: child.group,
+                  value: child.value,
+                  horizontal: child.horizontal || '0',
+                  vertical: child.vertical || '0',
+                  priceMarkup: child.priceMarkup || '0',
+                  markupType: child.markupType || 'FLAT',
+                  isBasePrice: false,
+                  imageUrl: child.imageUrl || '',
+                  parentValue: cleanNewVal
+                }));
+
+                setNewProdSpecs([...newProdSpecs, newBaseSpec, ...clonedChildren]);
+                setActiveSizeFilter(cleanNewVal);
+                setVariantBaseGroup(duplicateTargetSpec.group);
+                setShowDuplicateVariantModal(false);
+                setDuplicateTargetSpec(null);
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                    Variant Group
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={duplicateTargetSpec.group}
+                    className="input-field"
+                    style={{ background: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                    New Variant Value / Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    className="input-field"
+                    value={duplicateNewValue}
+                    onChange={(e) => setDuplicateNewValue(e.target.value)}
+                    placeholder="e.g. 5x7, Large, Pack 1000..."
+                    style={{ padding: '8px 10px', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                    Starting / Base Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    className="input-field"
+                    value={duplicateNewPrice}
+                    onChange={(e) => setDuplicateNewPrice(e.target.value)}
+                    placeholder="e.g. 50.00"
+                    style={{ padding: '8px 10px', fontSize: '13px' }}
+                  />
+                </div>
+
+                {/* Info preview */}
+                <div style={{ background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '10px 12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  📦 <strong>{newProdSpecs.filter(s => s.parentValue === duplicateTargetSpec.value).length} child options</strong> (e.g. Qty, Turnaround, Coating) will be cloned with exact markups linked to <strong>{duplicateNewValue || '...'}</strong>.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setShowDuplicateVariantModal(false);
+                    setDuplicateTargetSpec(null);
+                  }}
+                  style={{ padding: '8px 16px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  style={{ padding: '8px 18px', fontWeight: '700', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Copy size={13} /> Duplicate Variant
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
