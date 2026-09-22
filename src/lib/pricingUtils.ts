@@ -295,9 +295,9 @@ export function calculateDynamicPrice(
   });
   const activeQty = hasQtySpec ? specQty : quantity;
 
-  // Sum other specifications markups
-  let otherMarkups = 0;
-  const baseForMarkup = basePrice + sizeMarkup;
+  // First pass: sum all non-percentage specifications markups (flat / multiplier)
+  let nonPercentageMarkups = 0;
+  const percentageSpecs: Array<{ match: any; markup: number }> = [];
 
   Object.entries(selectedSpecs).forEach(([group, value]) => {
     const match = findMatchingSpec(group, value);
@@ -307,16 +307,25 @@ export function calculateDynamicPrice(
 
       const markup = Number(match.priceMarkup) || 0;
       if (match.markupType === 'PERCENTAGE') {
-        otherMarkups += (baseForMarkup * markup) / 100;
+        percentageSpecs.push({ match, markup });
       } else if (match.markupType === 'MULTIPLY_BY_QTY') {
-        otherMarkups += markup * activeQty;
+        nonPercentageMarkups += markup * activeQty;
       } else {
-        otherMarkups += markup;
+        nonPercentageMarkups += markup;
       }
     }
   });
 
-  const finalUnitPrice = basePrice + sizeMarkup + otherMarkups;
+  // Subtotal before applying percentage markups (e.g. Size $20 + Qty $10 = $30)
+  const subtotalBeforePercent = basePrice + sizeMarkup + nonPercentageMarkups;
+
+  // Second pass: apply percentage markups to the subtotal (e.g. 10% of $30 = $3 => $33)
+  let percentageMarkups = 0;
+  percentageSpecs.forEach(({ markup }) => {
+    percentageMarkups += (subtotalBeforePercent * markup) / 100;
+  });
+
+  const finalUnitPrice = subtotalBeforePercent + percentageMarkups;
 
   return {
     unitPrice: Math.max(0, finalUnitPrice),
