@@ -147,6 +147,7 @@ export default function AdminPage() {
   ]);
   const [activeSizeFilter, setActiveSizeFilter] = useState<string>('4x6');
   const [variantBaseGroup, setVariantBaseGroup] = useState<string>('Size');
+  const [modalVariantGroup, setModalVariantGroup] = useState<string>('Size');
   const [showAddVariantModal, setShowAddVariantModal] = useState<boolean>(false);
   const [newVariantValue, setNewVariantValue] = useState<string>('');
   const [newVariantBasePrice, setNewVariantBasePrice] = useState<string>('50.00');
@@ -1842,7 +1843,7 @@ export default function AdminPage() {
                       Configurable Dynamic Attributes & Options
                     </h4>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Select an Option Variant below (e.g. {variantBaseGroup} {activeSizeFilter}) to configure its unique base price and specific option markups.
+                      Select an Option Variant below to configure its unique base price and specific option markups.
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1850,9 +1851,10 @@ export default function AdminPage() {
                       type="button" 
                       className="btn btn-primary btn-sm" 
                       onClick={() => {
-                        // Pre-populate available option names from globalOptions excluding the base variant group
+                        const defaultGroup = globalOptions[0]?.name || variantBaseGroup || 'Size';
+                        setModalVariantGroup(defaultGroup);
                         const otherOptions = globalOptions
-                          .filter((o: any) => o.name?.toLowerCase() !== variantBaseGroup.toLowerCase() && o.attributes?.length > 0)
+                          .filter((o: any) => o.name?.toLowerCase() !== defaultGroup.toLowerCase() && o.attributes?.length > 0)
                           .map((o: any) => o.name);
                         setSelectedVariantOptionNames(otherOptions);
                         setNewVariantValue('');
@@ -1873,14 +1875,21 @@ export default function AdminPage() {
                 {showAddVariantModal && (
                   <div style={{
                     position: 'fixed',
-                    inset: 0,
-                    zIndex: 100,
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    backdropFilter: 'blur(4px)',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    zIndex: 9999,
+                    background: 'rgba(15, 23, 42, 0.65)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '20px'
+                    padding: '20px',
+                    overflow: 'hidden',
+                    overscrollBehavior: 'contain',
+                    pointerEvents: 'auto'
                   }}>
                     <div style={{
                       background: '#ffffff',
@@ -1888,7 +1897,7 @@ export default function AdminPage() {
                       maxWidth: '560px',
                       width: '100%',
                       padding: '24px',
-                      boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                       border: '1px solid var(--border-color)',
                       maxHeight: '90vh',
                       overflowY: 'auto'
@@ -1919,10 +1928,10 @@ export default function AdminPage() {
                           </label>
                           <select
                             className="input-field"
-                            value={variantBaseGroup}
+                            value={modalVariantGroup}
                             onChange={(e) => {
                               const newGroup = e.target.value;
-                              setVariantBaseGroup(newGroup);
+                              setModalVariantGroup(newGroup);
                               // Auto-select other options
                               const otherOptions = globalOptions
                                 .filter((o: any) => o.name?.toLowerCase() !== newGroup.toLowerCase() && o.attributes?.length > 0)
@@ -1956,7 +1965,7 @@ export default function AdminPage() {
                           />
                           <datalist id="variant-attr-suggestions">
                             {globalOptions
-                              .find((o: any) => o.name.toLowerCase() === variantBaseGroup.toLowerCase())
+                              .find((o: any) => o.name.toLowerCase() === modalVariantGroup.toLowerCase())
                               ?.attributes?.map((a: any) => (
                                 <option key={a.id} value={a.value} />
                               ))}
@@ -1991,7 +2000,7 @@ export default function AdminPage() {
                             type="button"
                             onClick={() => {
                               const avail = globalOptions
-                                .filter((o: any) => o.name?.toLowerCase() !== variantBaseGroup.toLowerCase() && o.attributes?.length > 0)
+                                .filter((o: any) => o.name?.toLowerCase() !== modalVariantGroup.toLowerCase() && o.attributes?.length > 0)
                                 .map((o: any) => o.name);
                               setSelectedVariantOptionNames(selectedVariantOptionNames.length === avail.length ? [] : avail);
                             }}
@@ -2003,7 +2012,7 @@ export default function AdminPage() {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '10px', background: 'var(--bg-secondary)' }}>
                           {globalOptions
-                            .filter((opt: any) => opt.name?.toLowerCase() !== variantBaseGroup.toLowerCase())
+                            .filter((opt: any) => opt.name?.toLowerCase() !== modalVariantGroup.toLowerCase())
                             .map((opt: any) => {
                               const isChecked = selectedVariantOptionNames.includes(opt.name);
                               const attrs = opt.attributes || [];
@@ -2061,13 +2070,14 @@ export default function AdminPage() {
 
                             // 1. Add base variant spec
                             const newSpecsList = [...newProdSpecs];
-                            const existingBaseIndex = newSpecsList.findIndex(s => s.group.toLowerCase() === variantBaseGroup.toLowerCase() && s.value === cleanValue);
+                            const existingBaseIndex = newSpecsList.findIndex(s => s.group.toLowerCase() === modalVariantGroup.toLowerCase() && s.value === cleanValue);
 
                             if (existingBaseIndex !== -1) {
                               newSpecsList[existingBaseIndex].priceMarkup = newVariantBasePrice || '0';
+                              newSpecsList[existingBaseIndex].isBasePrice = true;
                             } else {
                               newSpecsList.push({
-                                group: variantBaseGroup,
+                                group: modalVariantGroup,
                                 value: cleanValue,
                                 horizontal: horiz,
                                 vertical: vert,
@@ -2102,6 +2112,7 @@ export default function AdminPage() {
                               }
                             });
 
+                            setVariantBaseGroup(modalVariantGroup);
                             setNewProdSpecs(newSpecsList);
                             setActiveSizeFilter(cleanValue);
                             setShowAddVariantModal(false);
@@ -2115,9 +2126,13 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {/* Visual Option Variant Cards (e.g. Size 4x6, 5x7) */}
+                {/* Visual Option Variant Cards */}
                 {(() => {
-                  const baseVariantSpecs = newProdSpecs.filter(s => s.group.toLowerCase() === variantBaseGroup.toLowerCase());
+                  // Collect all specs that represent an option variant:
+                  // Any spec that is marked isBasePrice OR has child specs that point to it via parentValue
+                  const baseVariantSpecs = newProdSpecs.filter(s => 
+                    s.isBasePrice || (!s.parentValue && newProdSpecs.some(child => child.parentValue === s.value))
+                  );
                   if (baseVariantSpecs.length === 0) return null;
 
                   return (
@@ -2125,14 +2140,17 @@ export default function AdminPage() {
                       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                         {baseVariantSpecs.map((vSpec, sIdx) => {
                           const isSelected = (activeSizeFilter === vSpec.value) || (!activeSizeFilter && sIdx === 0);
-                          const matchingRowsCount = newProdSpecs.filter(s => s.group.toLowerCase() !== variantBaseGroup.toLowerCase() && s.parentValue === vSpec.value).length;
+                          const matchingRowsCount = newProdSpecs.filter(s => s.parentValue === vSpec.value).length;
 
                           return (
                             <div
-                              key={vSpec.value || sIdx}
-                              onClick={() => setActiveSizeFilter(vSpec.value)}
+                              key={`${vSpec.group}-${vSpec.value}-${sIdx}`}
+                              onClick={() => {
+                                setActiveSizeFilter(vSpec.value);
+                                setVariantBaseGroup(vSpec.group);
+                              }}
                               style={{
-                                width: '180px',
+                                width: '190px',
                                 minHeight: '110px',
                                 background: isSelected ? '#ffffff' : '#f1f5f9',
                                 border: isSelected ? '2.5px solid var(--accent-primary)' : '1.5px solid #cbd5e1',
@@ -2152,10 +2170,11 @@ export default function AdminPage() {
                               {isSelected && (
                                 <div style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)' }} />
                               )}
+                              {/* Display each card's real group name (e.g. Size, Qty, Orientation) */}
                               <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
-                                {variantBaseGroup}
+                                {vSpec.group}
                               </span>
-                              <span style={{ fontSize: '30px', fontWeight: '800', color: isSelected ? 'var(--text-primary)' : '#64748b', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                              <span style={{ fontSize: '28px', fontWeight: '800', color: isSelected ? 'var(--text-primary)' : '#64748b', letterSpacing: '-0.02em', lineHeight: 1.1, textAlign: 'center' }}>
                                 {vSpec.value}
                               </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px' }}>
@@ -2198,11 +2217,11 @@ export default function AdminPage() {
                     .map((row, originalIdx) => ({ row, originalIdx }))
                     .filter(({ row }) => {
                       if (!activeSizeFilter || activeSizeFilter === '__ALL__') return true;
-                      if (row.group.toLowerCase() === variantBaseGroup.toLowerCase()) {
+                      if (row.isBasePrice || !row.parentValue) {
                         return row.value === activeSizeFilter;
                       }
-                      // For non-variant specs, show if it belongs to this variant value, or if it has no parentValue
-                      return row.parentValue === activeSizeFilter || !row.parentValue;
+                      // For child specs, show if it belongs to this variant value
+                      return row.parentValue === activeSizeFilter;
                     })
                     .map(({ row, originalIdx: idx }) => (
                     <div 
