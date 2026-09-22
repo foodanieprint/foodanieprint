@@ -1871,261 +1871,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* MODAL: ADD OPTION VARIANT */}
-                {showAddVariantModal && (
-                  <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    width: '100vw',
-                    height: '100vh',
-                    zIndex: 9999,
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '20px',
-                    overflow: 'hidden',
-                    overscrollBehavior: 'contain',
-                    pointerEvents: 'auto'
-                  }}>
-                    <div style={{
-                      background: '#ffffff',
-                      borderRadius: '12px',
-                      maxWidth: '560px',
-                      width: '100%',
-                      padding: '24px',
-                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                      border: '1px solid var(--border-color)',
-                      maxHeight: '90vh',
-                      overflowY: 'auto'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
-                        <div>
-                          <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-                            ✨ Add Option Variant
-                          </h3>
-                          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
-                            Define a variant value (e.g. Size 4x6, 5x7) and choose which options & attributes will have independent pricing inside it.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowAddVariantModal(false)}
-                          style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
-                        >
-                          &times;
-                        </button>
-                      </div>
-
-                      {/* 1. Base Variant Dimension */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
-                            Variant Option Group
-                          </label>
-                          <select
-                            className="input-field"
-                            value={modalVariantGroup}
-                            onChange={(e) => {
-                              const newGroup = e.target.value;
-                              setModalVariantGroup(newGroup);
-                              // Auto-select other options
-                              const otherOptions = globalOptions
-                                .filter((o: any) => o.name?.toLowerCase() !== newGroup.toLowerCase() && o.attributes?.length > 0)
-                                .map((o: any) => o.name);
-                              setSelectedVariantOptionNames(otherOptions);
-                            }}
-                            style={{ padding: '8px 10px', fontSize: '13px' }}
-                          >
-                            {globalOptions.map((opt: any) => (
-                              <option key={opt.id} value={opt.name}>{opt.name}</option>
-                            ))}
-                            {!globalOptions.some(o => o.name.toLowerCase() === 'size') && (
-                              <option value="Size">Size</option>
-                            )}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
-                            Variant Value
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            className="input-field"
-                            placeholder="e.g. 4x6, 5x7, Small..."
-                            value={newVariantValue}
-                            onChange={(e) => setNewVariantValue(e.target.value)}
-                            style={{ padding: '8px 10px', fontSize: '13px' }}
-                            list="variant-attr-suggestions"
-                          />
-                          <datalist id="variant-attr-suggestions">
-                            {globalOptions
-                              .find((o: any) => o.name.toLowerCase() === modalVariantGroup.toLowerCase())
-                              ?.attributes?.map((a: any) => (
-                                <option key={a.id} value={a.value} />
-                              ))}
-                          </datalist>
-                        </div>
-                      </div>
-
-                      {/* 2. Base Price for this Variant */}
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
-                          Starting / Base Price ($) for this Variant
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          required
-                          className="input-field"
-                          placeholder="e.g. 50.00"
-                          value={newVariantBasePrice}
-                          onChange={(e) => setNewVariantBasePrice(e.target.value)}
-                          style={{ padding: '8px 10px', fontSize: '13px' }}
-                        />
-                      </div>
-
-                      {/* 3. Choose Options and Attributes to include inside this variant */}
-                      <div style={{ marginBottom: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                            Include Options & Attributes for this Variant:
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const avail = globalOptions
-                                .filter((o: any) => o.name?.toLowerCase() !== modalVariantGroup.toLowerCase() && o.attributes?.length > 0)
-                                .map((o: any) => o.name);
-                              setSelectedVariantOptionNames(selectedVariantOptionNames.length === avail.length ? [] : avail);
-                            }}
-                            style={{ fontSize: '11px', color: 'var(--accent-primary)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: '600' }}
-                          >
-                            {selectedVariantOptionNames.length > 0 ? 'Deselect All' : 'Select All'}
-                          </button>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '10px', background: 'var(--bg-secondary)' }}>
-                          {globalOptions
-                            .filter((opt: any) => opt.name?.toLowerCase() !== modalVariantGroup.toLowerCase())
-                            .map((opt: any) => {
-                              const isChecked = selectedVariantOptionNames.includes(opt.name);
-                              const attrs = opt.attributes || [];
-
-                              return (
-                                <label key={opt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: '#ffffff', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={(e) => {
-                                        if (e.target.checked) {
-                                          setSelectedVariantOptionNames([...selectedVariantOptionNames, opt.name]);
-                                        } else {
-                                          setSelectedVariantOptionNames(selectedVariantOptionNames.filter(n => n !== opt.name));
-                                        }
-                                      }}
-                                      style={{ accentColor: 'var(--accent-primary)' }}
-                                    />
-                                    <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{opt.name}</span>
-                                  </div>
-                                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', background: '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
-                                    {attrs.length} attributes ({attrs.slice(0, 3).map((a: any) => a.value).join(', ')}{attrs.length > 3 ? '...' : ''})
-                                  </span>
-                                </label>
-                              );
-                            })}
-                        </div>
-                      </div>
-
-                      {/* Modal Footer */}
-                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => setShowAddVariantModal(false)}
-                          style={{ padding: '8px 16px' }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => {
-                            if (!newVariantValue.trim()) {
-                              alert('Please enter a variant value (e.g. 4x6, 5x7).');
-                              return;
-                            }
-                            const cleanValue = newVariantValue.trim();
-
-                            // Parse horizontal & vertical if it's Size
-                            const match = cleanValue.match(/([0-9.]+)\s*(?:x|by|\*)\s*([0-9.]+)/i);
-                            const horiz = match ? match[1] : '0';
-                            const vert = match ? match[2] : '0';
-
-                            // 1. Add base variant spec
-                            const newSpecsList = [...newProdSpecs];
-                            const existingBaseIndex = newSpecsList.findIndex(s => s.group.toLowerCase() === modalVariantGroup.toLowerCase() && s.value === cleanValue);
-
-                            if (existingBaseIndex !== -1) {
-                              newSpecsList[existingBaseIndex].priceMarkup = newVariantBasePrice || '0';
-                              newSpecsList[existingBaseIndex].isBasePrice = true;
-                            } else {
-                              newSpecsList.push({
-                                group: modalVariantGroup,
-                                value: cleanValue,
-                                horizontal: horiz,
-                                vertical: vert,
-                                priceMarkup: newVariantBasePrice || '50.00',
-                                markupType: 'FLAT',
-                                isBasePrice: true,
-                                imageUrl: ''
-                              });
-                            }
-
-                            // 2. Add attributes for all selected option groups specifically for this parent variant
-                            selectedVariantOptionNames.forEach((optName) => {
-                              const matchingOpt = globalOptions.find((o: any) => o.name === optName);
-                              if (matchingOpt && Array.isArray(matchingOpt.attributes)) {
-                                matchingOpt.attributes.forEach((attr: any) => {
-                                  // Check if already exists for this parent
-                                  const alreadyExists = newSpecsList.some(s => s.group === optName && s.value === attr.value && s.parentValue === cleanValue);
-                                  if (!alreadyExists) {
-                                    newSpecsList.push({
-                                      group: optName,
-                                      value: attr.value,
-                                      horizontal: String(attr.horizontal || '0'),
-                                      vertical: String(attr.vertical || '0'),
-                                      priceMarkup: String(attr.priceMarkup || '0'),
-                                      markupType: attr.markupType || 'FLAT',
-                                      isBasePrice: false,
-                                      imageUrl: attr.imageUrl || '',
-                                      parentValue: cleanValue
-                                    });
-                                  }
-                                });
-                              }
-                            });
-
-                            setVariantBaseGroup(modalVariantGroup);
-                            setNewProdSpecs(newSpecsList);
-                            setActiveSizeFilter(cleanValue);
-                            setShowAddVariantModal(false);
-                          }}
-                          style={{ padding: '8px 18px', fontWeight: '700', background: 'var(--accent-primary)' }}
-                        >
-                          Create Option Variant
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Visual Option Variant Cards */}
                 {(() => {
                   // Collect all specs that represent an option variant:
@@ -3833,6 +3578,261 @@ export default function AdminPage() {
         )}
 
       </main>
+
+      {/* MODAL: ADD OPTION VARIANT (Placed at root layout to prevent container clipping) */}
+      {showAddVariantModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 999999,
+          background: 'rgba(15, 23, 42, 0.65)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          overflow: 'hidden',
+          overscrollBehavior: 'contain',
+          pointerEvents: 'auto'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            maxWidth: '560px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid var(--border-color)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                  ✨ Add Option Variant
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                  Define a variant value (e.g. Size 4x6, 5x7) and choose which options & attributes will have independent pricing inside it.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddVariantModal(false)}
+                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* 1. Base Variant Dimension */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                  Variant Option Group
+                </label>
+                <select
+                  className="input-field"
+                  value={modalVariantGroup}
+                  onChange={(e) => {
+                    const newGroup = e.target.value;
+                    setModalVariantGroup(newGroup);
+                    // Auto-select other options
+                    const otherOptions = globalOptions
+                      .filter((o: any) => o.name?.toLowerCase() !== newGroup.toLowerCase() && o.attributes?.length > 0)
+                      .map((o: any) => o.name);
+                    setSelectedVariantOptionNames(otherOptions);
+                  }}
+                  style={{ padding: '8px 10px', fontSize: '13px' }}
+                >
+                  {globalOptions.map((opt: any) => (
+                    <option key={opt.id} value={opt.name}>{opt.name}</option>
+                  ))}
+                  {!globalOptions.some(o => o.name.toLowerCase() === 'size') && (
+                    <option value="Size">Size</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                  Variant Value
+                </label>
+                <input
+                  type="text"
+                  required
+                  className="input-field"
+                  placeholder="e.g. 4x6, 5x7, Small..."
+                  value={newVariantValue}
+                  onChange={(e) => setNewVariantValue(e.target.value)}
+                  style={{ padding: '8px 10px', fontSize: '13px' }}
+                  list="variant-attr-suggestions"
+                />
+                <datalist id="variant-attr-suggestions">
+                  {globalOptions
+                    .find((o: any) => o.name.toLowerCase() === modalVariantGroup.toLowerCase())
+                    ?.attributes?.map((a: any) => (
+                      <option key={a.id} value={a.value} />
+                    ))}
+                </datalist>
+              </div>
+            </div>
+
+            {/* 2. Base Price for this Variant */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                Starting / Base Price ($) for this Variant
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                className="input-field"
+                placeholder="e.g. 50.00"
+                value={newVariantBasePrice}
+                onChange={(e) => setNewVariantBasePrice(e.target.value)}
+                style={{ padding: '8px 10px', fontSize: '13px' }}
+              />
+            </div>
+
+            {/* 3. Choose Options and Attributes to include inside this variant */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                  Include Options & Attributes for this Variant:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const avail = globalOptions
+                      .filter((o: any) => o.name?.toLowerCase() !== modalVariantGroup.toLowerCase() && o.attributes?.length > 0)
+                      .map((o: any) => o.name);
+                    setSelectedVariantOptionNames(selectedVariantOptionNames.length === avail.length ? [] : avail);
+                  }}
+                  style={{ fontSize: '11px', color: 'var(--accent-primary)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: '600' }}
+                >
+                  {selectedVariantOptionNames.length > 0 ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '10px', background: 'var(--bg-secondary)' }}>
+                {globalOptions
+                  .filter((opt: any) => opt.name?.toLowerCase() !== modalVariantGroup.toLowerCase())
+                  .map((opt: any) => {
+                    const isChecked = selectedVariantOptionNames.includes(opt.name);
+                    const attrs = opt.attributes || [];
+
+                    return (
+                      <label key={opt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: '#ffffff', borderRadius: '6px', border: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedVariantOptionNames([...selectedVariantOptionNames, opt.name]);
+                              } else {
+                                setSelectedVariantOptionNames(selectedVariantOptionNames.filter(n => n !== opt.name));
+                              }
+                            }}
+                            style={{ accentColor: 'var(--accent-primary)' }}
+                          />
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{opt.name}</span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', background: '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
+                          {attrs.length} attributes ({attrs.slice(0, 3).map((a: any) => a.value).join(', ')}{attrs.length > 3 ? '...' : ''})
+                        </span>
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowAddVariantModal(false)}
+                style={{ padding: '8px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  if (!newVariantValue.trim()) {
+                    alert('Please enter a variant value (e.g. 4x6, 5x7).');
+                    return;
+                  }
+                  const cleanValue = newVariantValue.trim();
+
+                  // Parse horizontal & vertical if it's Size
+                  const match = cleanValue.match(/([0-9.]+)\s*(?:x|by|\*)\s*([0-9.]+)/i);
+                  const horiz = match ? match[1] : '0';
+                  const vert = match ? match[2] : '0';
+
+                  // 1. Add base variant spec
+                  const newSpecsList = [...newProdSpecs];
+                  const existingBaseIndex = newSpecsList.findIndex(s => s.group.toLowerCase() === modalVariantGroup.toLowerCase() && s.value === cleanValue);
+
+                  if (existingBaseIndex !== -1) {
+                    newSpecsList[existingBaseIndex].priceMarkup = newVariantBasePrice || '0';
+                    newSpecsList[existingBaseIndex].isBasePrice = true;
+                  } else {
+                    newSpecsList.push({
+                      group: modalVariantGroup,
+                      value: cleanValue,
+                      horizontal: horiz,
+                      vertical: vert,
+                      priceMarkup: newVariantBasePrice || '50.00',
+                      markupType: 'FLAT',
+                      isBasePrice: true,
+                      imageUrl: ''
+                    });
+                  }
+
+                  // 2. Add attributes for all selected option groups specifically for this parent variant
+                  selectedVariantOptionNames.forEach((optName) => {
+                    const matchingOpt = globalOptions.find((o: any) => o.name === optName);
+                    if (matchingOpt && Array.isArray(matchingOpt.attributes)) {
+                      matchingOpt.attributes.forEach((attr: any) => {
+                        // Check if already exists for this parent
+                        const alreadyExists = newSpecsList.some(s => s.group === optName && s.value === attr.value && s.parentValue === cleanValue);
+                        if (!alreadyExists) {
+                          newSpecsList.push({
+                            group: optName,
+                            value: attr.value,
+                            horizontal: String(attr.horizontal || '0'),
+                            vertical: String(attr.vertical || '0'),
+                            priceMarkup: String(attr.priceMarkup || '0'),
+                            markupType: attr.markupType || 'FLAT',
+                            isBasePrice: false,
+                            imageUrl: attr.imageUrl || '',
+                            parentValue: cleanValue
+                          });
+                        }
+                      });
+                    }
+                  });
+
+                  setVariantBaseGroup(modalVariantGroup);
+                  setNewProdSpecs(newSpecsList);
+                  setActiveSizeFilter(cleanValue);
+                  setShowAddVariantModal(false);
+                }}
+                style={{ padding: '8px 18px', fontWeight: '700', background: 'var(--accent-primary)' }}
+              >
+                Create Option Variant
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
