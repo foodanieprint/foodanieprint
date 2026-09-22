@@ -221,12 +221,16 @@ export function calculateDynamicPrice(
 
   // Helper to find spec that matches group + value, prioritizing matching parentValue (activeSizeVal)
   const findMatchingSpec = (group: string, value: string) => {
+    const normGroup = normalizeVal(group);
+    const normValue = normalizeVal(value);
+
     const candidateSpecs = (product.specs || []).filter(
-      (s: any) => s.group === group && s.value === value
+      (s: any) => normalizeVal(s.group) === normGroup && normalizeVal(s.value) === normValue
     );
     if (candidateSpecs.length === 0) return null;
     if (activeSizeVal) {
-      const parentMatch = candidateSpecs.find((s: any) => s.parentValue === activeSizeVal);
+      const normActiveSize = normalizeVal(activeSizeVal);
+      const parentMatch = candidateSpecs.find((s: any) => normalizeVal(s.parentValue) === normActiveSize);
       if (parentMatch) return parentMatch;
     }
     const globalMatch = candidateSpecs.find((s: any) => !s.parentValue);
@@ -306,9 +310,13 @@ export function calculateDynamicPrice(
       if (sizeFoundAndParsed && (group.toLowerCase() === 'size' || group.toLowerCase() === 'tamaño')) return;
 
       const markup = Number(match.priceMarkup) || 0;
-      if (match.markupType === 'PERCENTAGE') {
+      const mType = String(match.markupType || '').toUpperCase().trim();
+      const isPercent = mType === 'PERCENTAGE' || mType === 'PERCENT' || mType === '%';
+      const isMultiplyQty = mType === 'MULTIPLY_BY_QTY' || mType === 'MULTIPLY' || mType === 'QTY';
+
+      if (isPercent) {
         percentageSpecs.push({ match, markup });
-      } else if (match.markupType === 'MULTIPLY_BY_QTY') {
+      } else if (isMultiplyQty) {
         nonPercentageMarkups += markup * activeQty;
       } else {
         nonPercentageMarkups += markup;
