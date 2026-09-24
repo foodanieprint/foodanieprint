@@ -84,26 +84,27 @@ productsRouter.get('/:slug', async (req, res) => {
             }
             return false;
         });
-        // Add inherited category options without destroying the product's custom specs & option variants
+        // Add inherited category options without destroying the product's custom specs & option variants.
+        // If the product already defines one or more specs for an option group, the product has explicitly
+        // configured its choices for that group (e.g. specific sizes/option variants) and we MUST NOT inject
+        // unused attributes from the global option matrix into this product.
         if (catOptions.length > 0) {
             catOptions.forEach((globalOpt) => {
-                if (Array.isArray(globalOpt.attributes)) {
+                const groupAlreadyExists = specs.some(s => s.group.toLowerCase() === globalOpt.name.toLowerCase());
+                if (!groupAlreadyExists && Array.isArray(globalOpt.attributes)) {
                     globalOpt.attributes.forEach((attr, idx) => {
-                        const exists = specs.some(s => s.group.toLowerCase() === globalOpt.name.toLowerCase() && s.value === attr.value);
-                        if (!exists) {
-                            specs.push({
-                                id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
-                                productId: product.id,
-                                group: globalOpt.name,
-                                value: attr.value,
-                                priceMarkup: attr.priceMarkup,
-                                markupType: attr.markupType || 'FLAT',
-                                isBasePrice: attr.isBasePrice ?? false,
-                                imageUrl: attr.imageUrl || null,
-                                horizontal: attr.horizontal || 0,
-                                vertical: attr.vertical || 0,
-                            });
-                        }
+                        specs.push({
+                            id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
+                            productId: product.id,
+                            group: globalOpt.name,
+                            value: attr.value,
+                            priceMarkup: attr.priceMarkup,
+                            markupType: attr.markupType || 'FLAT',
+                            isBasePrice: attr.isBasePrice ?? false,
+                            imageUrl: attr.imageUrl || null,
+                            horizontal: attr.horizontal || 0,
+                            vertical: attr.vertical || 0,
+                        });
                     });
                 }
             });
@@ -118,32 +119,30 @@ productsRouter.get('/:slug', async (req, res) => {
         catOptions = globalOptions.filter((o) => optionIds.includes(o.id));
         if (catOptions.length > 0) {
             catOptions.forEach((globalOpt) => {
-                if (Array.isArray(globalOpt.attributes)) {
+                const groupAlreadyExists = specs.some(s => s.group.toLowerCase() === globalOpt.name.toLowerCase());
+                if (!groupAlreadyExists && Array.isArray(globalOpt.attributes)) {
                     globalOpt.attributes.forEach((attr, idx) => {
-                        const exists = specs.some(s => s.group === globalOpt.name && s.value === attr.value);
-                        if (!exists) {
-                            specs.push({
-                                id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
-                                productId: product.id,
-                                group: globalOpt.name,
-                                value: attr.value,
-                                priceMarkup: attr.priceMarkup,
-                                markupType: attr.markupType || 'FLAT',
-                                isBasePrice: attr.isBasePrice ?? false,
-                                imageUrl: attr.imageUrl || null,
-                                horizontal: attr.horizontal || 0,
-                                vertical: attr.vertical || 0,
-                            });
-                        }
+                        specs.push({
+                            id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
+                            productId: product.id,
+                            group: globalOpt.name,
+                            value: attr.value,
+                            priceMarkup: attr.priceMarkup,
+                            markupType: attr.markupType || 'FLAT',
+                            isBasePrice: attr.isBasePrice ?? false,
+                            imageUrl: attr.imageUrl || null,
+                            horizontal: attr.horizontal || 0,
+                            vertical: attr.vertical || 0,
+                        });
                     });
                 }
             });
         }
     }
     specs = specs.map((spec) => {
-        const globalOpt = globalOptions.find((o) => o.name === spec.group);
+        const globalOpt = globalOptions.find((o) => o.name?.toLowerCase() === spec.group?.toLowerCase());
         if (globalOpt && Array.isArray(globalOpt.attributes)) {
-            const match = globalOpt.attributes.find((a) => a.value === spec.value);
+            const match = globalOpt.attributes.find((a) => a.value?.toLowerCase() === spec.value?.toLowerCase());
             if (match) {
                 return {
                     ...spec,

@@ -132,14 +132,51 @@ function ProductDetailContent() {
         
         // Inicializar especificaciones por defecto o por parámetros URL
         const initialSpecs: Record<string, string> = {};
-        const groups = new Set(data.specs.map((s: any) => s.group));
+        const allSpecs: any[] = data.specs || [];
+        const groups = Array.from(new Set(allSpecs.map((s: any) => s.group)));
+
+        // Detect base variant/size group first
+        const sizeGroup = groups.find(
+          (g: any) =>
+            g.toLowerCase() === 'size' ||
+            g.toLowerCase() === 'tamaño' ||
+            g.toLowerCase() === 'tamano' ||
+            g.toLowerCase() === 'dimensions'
+        ) || groups.find((g: any) => allSpecs.some(s => s.group === g && (s.isBasePrice || allSpecs.some(child => child.parentValue === s.value))))
+          || groups[0];
+
+        let initialSize: string | null = null;
+        if (sizeGroup) {
+          const queryVal = searchParams.get(sizeGroup as string);
+          if (queryVal && allSpecs.some((s: any) => s.group === sizeGroup && s.value === queryVal)) {
+            initialSize = queryVal;
+          } else {
+            const firstSize = allSpecs.find((s: any) => s.group === sizeGroup && !s.parentValue);
+            if (firstSize) initialSize = firstSize.value;
+          }
+          if (initialSize) {
+            initialSpecs[sizeGroup as string] = initialSize;
+          }
+        }
+
         groups.forEach((group: any) => {
+          if (group === sizeGroup && initialSpecs[group]) return;
           const queryVal = searchParams.get(group);
-          if (queryVal && data.specs.some((s: any) => s.group === group && s.value === queryVal)) {
+          if (queryVal && allSpecs.some((s: any) => s.group === group && s.value === queryVal)) {
             initialSpecs[group] = queryVal;
           } else {
-            const firstVal = data.specs.find((s: any) => s.group === group);
-            if (firstVal) initialSpecs[group] = firstVal.value;
+            // Find first matching spec that belongs to initialSize or has no parentValue
+            const validSpecs = allSpecs.filter((s: any) => {
+              if (s.group !== group) return false;
+              if (s.parentValue && initialSize && s.parentValue !== initialSize) return false;
+              return true;
+            });
+            if (validSpecs.length > 0) {
+              initialSpecs[group] = validSpecs[0].value;
+            } else {
+              const fallback = allSpecs.find((s: any) => s.group === group);
+              if (fallback) initialSpecs[group] = fallback.value;
+            }
           }
         });
         setSelectedSpecs(initialSpecs);
@@ -202,11 +239,11 @@ function ProductDetailContent() {
   // Parse conditional exclusion rules
   const exclusionRules = product ? parseExclusionRules(product.exclusionRules) : [];
 
-  // Auto-reconcile: if an active spec option becomes excluded due to a condition change,
-  // automatically fallback to the first available non-excluded option for that group.
+  // Auto-reconcile: if an active spec option becomes excluded or invalid due to size switch / condition change,
+  // automatically fallback to the first available valid option for that group.
   // CRITICAL: Must be called before any early returns (like `if (loading)`) to follow React Rules of Hooks!
   useEffect(() => {
-    if (!product || !product.specs || exclusionRules.length === 0) return;
+    if (!product || !product.specs) return;
     let hasChanged = false;
     const updatedSpecs = { ...selectedSpecs };
 
@@ -214,15 +251,15 @@ function ProductDetailContent() {
     const allGroups = Array.from(new Set((product.specs || []).map((s: any) => s.group)));
     for (const grp of allGroups) {
       const currentVal = updatedSpecs[grp as string];
-      if (currentVal && isOptionExcluded(grp as string, currentVal, updatedSpecs, exclusionRules)) {
-        // Find valid options for this group
+      if (currentVal) {
+        // Find valid options for this group under activeSelectedSize and exclusionRules
         const groupSpecs = (product.specs || []).filter((s: any) => {
           if (s.group !== grp) return false;
           if (s.parentValue && activeSelectedSize && s.parentValue !== activeSelectedSize) return false;
           return !isOptionExcluded(grp as string, s.value, updatedSpecs, exclusionRules);
         });
 
-        if (groupSpecs.length > 0) {
+        if (groupSpecs.length > 0 && !groupSpecs.some((s: any) => s.value === currentVal)) {
           updatedSpecs[grp as string] = groupSpecs[0].value;
           hasChanged = true;
         }

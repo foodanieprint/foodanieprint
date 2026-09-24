@@ -90,26 +90,27 @@ productsRouter.get('/:slug', async (req: AuthenticatedRequest, res: Response) =>
       }
       return false;
     });
-    // Add inherited category options without destroying the product's custom specs & option variants
+    // Add inherited category options without destroying the product's custom specs & option variants.
+    // If the product already defines one or more specs for an option group, the product has explicitly
+    // configured its choices for that group (e.g. specific sizes/option variants) and we MUST NOT inject
+    // unused attributes from the global option matrix into this product.
     if (catOptions.length > 0) {
       catOptions.forEach((globalOpt: any) => {
-        if (Array.isArray(globalOpt.attributes)) {
+        const groupAlreadyExists = specs.some(s => s.group.toLowerCase() === globalOpt.name.toLowerCase());
+        if (!groupAlreadyExists && Array.isArray(globalOpt.attributes)) {
           globalOpt.attributes.forEach((attr: any, idx: number) => {
-            const exists = specs.some(s => s.group.toLowerCase() === globalOpt.name.toLowerCase() && s.value === attr.value);
-            if (!exists) {
-              specs.push({
-                id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
-                productId: product.id,
-                group: globalOpt.name,
-                value: attr.value,
-                priceMarkup: attr.priceMarkup,
-                markupType: attr.markupType || 'FLAT',
-                isBasePrice: attr.isBasePrice ?? false,
-                imageUrl: attr.imageUrl || null,
-                horizontal: attr.horizontal || 0,
-                vertical: attr.vertical || 0,
-              });
-            }
+            specs.push({
+              id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
+              productId: product.id,
+              group: globalOpt.name,
+              value: attr.value,
+              priceMarkup: attr.priceMarkup,
+              markupType: attr.markupType || 'FLAT',
+              isBasePrice: attr.isBasePrice ?? false,
+              imageUrl: attr.imageUrl || null,
+              horizontal: attr.horizontal || 0,
+              vertical: attr.vertical || 0,
+            });
           });
         }
       });
@@ -124,23 +125,21 @@ productsRouter.get('/:slug', async (req: AuthenticatedRequest, res: Response) =>
 
     if (catOptions.length > 0) {
       catOptions.forEach((globalOpt: any) => {
-        if (Array.isArray(globalOpt.attributes)) {
+        const groupAlreadyExists = specs.some(s => s.group.toLowerCase() === globalOpt.name.toLowerCase());
+        if (!groupAlreadyExists && Array.isArray(globalOpt.attributes)) {
           globalOpt.attributes.forEach((attr: any, idx: number) => {
-            const exists = specs.some(s => s.group === globalOpt.name && s.value === attr.value);
-            if (!exists) {
-              specs.push({
-                id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
-                productId: product.id,
-                group: globalOpt.name,
-                value: attr.value,
-                priceMarkup: attr.priceMarkup,
-                markupType: attr.markupType || 'FLAT',
-                isBasePrice: attr.isBasePrice ?? false,
-                imageUrl: attr.imageUrl || null,
-                horizontal: attr.horizontal || 0,
-                vertical: attr.vertical || 0,
-              });
-            }
+            specs.push({
+              id: attr.id || `inherited-spec-${globalOpt.id}-${idx}`,
+              productId: product.id,
+              group: globalOpt.name,
+              value: attr.value,
+              priceMarkup: attr.priceMarkup,
+              markupType: attr.markupType || 'FLAT',
+              isBasePrice: attr.isBasePrice ?? false,
+              imageUrl: attr.imageUrl || null,
+              horizontal: attr.horizontal || 0,
+              vertical: attr.vertical || 0,
+            });
           });
         }
       });
@@ -148,9 +147,9 @@ productsRouter.get('/:slug', async (req: AuthenticatedRequest, res: Response) =>
   }
 
   specs = specs.map((spec: any) => {
-    const globalOpt = globalOptions.find((o: any) => o.name === spec.group);
+    const globalOpt = globalOptions.find((o: any) => o.name?.toLowerCase() === spec.group?.toLowerCase());
     if (globalOpt && Array.isArray(globalOpt.attributes)) {
-      const match = globalOpt.attributes.find((a: any) => a.value === spec.value);
+      const match = globalOpt.attributes.find((a: any) => a.value?.toLowerCase() === spec.value?.toLowerCase());
       if (match) {
         return {
           ...spec,
