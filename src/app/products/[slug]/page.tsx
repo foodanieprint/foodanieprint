@@ -121,19 +121,54 @@ function ProductDetailContent() {
     }
   };
 
-  // Cargar producto por slug
+  // Cargar producto por slug con soporte de caché para evitar parpadeos en refresh
   useEffect(() => {
+    const cacheKeyProduct = `printear_cache_prod_${slug}`;
+    const cacheKeySpecs = `printear_cache_specs_${slug}`;
+
+    // 1. Restauración inmediata desde caché si existe
+    try {
+      const cachedProdStr = sessionStorage.getItem(cacheKeyProduct);
+      if (cachedProdStr) {
+        const cachedProd = JSON.parse(cachedProdStr);
+        setProduct(cachedProd);
+        setActiveImage(cachedProd.thumbnail || '');
+        setLoading(false);
+
+        const cachedSpecsStr = sessionStorage.getItem(cacheKeySpecs);
+        if (cachedSpecsStr) {
+          const cachedSpecs = JSON.parse(cachedSpecsStr);
+          setSelectedSpecs(cachedSpecs);
+          const { unitPrice: p } = calculateDynamicPrice(cachedProd, cachedSpecs);
+          setUnitPrice(p);
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading product cache:', e);
+    }
+
     async function fetchProduct() {
       try {
         const res = await fetch(`/api/products/${slug}`);
         if (!res.ok) throw new Error('Producto no encontrado');
         const data = await res.json();
         setProduct(data);
-        
-        // Inicializar especificaciones por defecto o por parámetros URL
+
+        try {
+          sessionStorage.setItem(cacheKeyProduct, JSON.stringify(data));
+        } catch (_) {}
+
+        // Comprobar si ya había especificaciones guardadas en caché para esta sesión
+        let savedSpecs: Record<string, string> | null = null;
+        try {
+          const s = sessionStorage.getItem(cacheKeySpecs);
+          if (s) savedSpecs = JSON.parse(s);
+        } catch (_) {}
+
+        // Inicializar especificaciones por defecto o por parámetros URL si no hay en caché
         const initialSpecs: Record<string, string> = {};
         const allSpecs: any[] = data.specs || [];
-        const groups = Array.from(new Set(allSpecs.map((s: any) => s.group)));
+        const groups = Array.from(new Set(allSpecs.map((spec: any) => spec.group)));
 
         // Detect base variant/size group first
         const sizeGroup = groups.find(
@@ -150,6 +185,8 @@ function ProductDetailContent() {
           const queryVal = searchParams.get(sizeGroup as string);
           if (queryVal && allSpecs.some((s: any) => s.group === sizeGroup && s.value === queryVal)) {
             initialSize = queryVal;
+          } else if (savedSpecs && savedSpecs[sizeGroup as string] && allSpecs.some((s: any) => s.group === sizeGroup && s.value === savedSpecs[sizeGroup as string])) {
+            initialSize = savedSpecs[sizeGroup as string];
           } else {
             const firstSize = allSpecs.find((s: any) => s.group === sizeGroup && !s.parentValue);
             if (firstSize) initialSize = firstSize.value;
@@ -164,6 +201,8 @@ function ProductDetailContent() {
           const queryVal = searchParams.get(group);
           if (queryVal && allSpecs.some((s: any) => s.group === group && s.value === queryVal)) {
             initialSpecs[group] = queryVal;
+          } else if (savedSpecs && savedSpecs[group] && allSpecs.some((s: any) => s.group === group && s.value === savedSpecs[group])) {
+            initialSpecs[group] = savedSpecs[group];
           } else {
             // Find first matching spec that belongs to initialSize or has no parentValue
             const validSpecs = allSpecs.filter((s: any) => {
@@ -179,27 +218,37 @@ function ProductDetailContent() {
             }
           }
         });
+
         setSelectedSpecs(initialSpecs);
-        setUnitPrice(data.basePrice);
+        const { unitPrice: calculatedPrice } = calculateDynamicPrice(data, initialSpecs);
+        setUnitPrice(calculatedPrice);
 
-        // Inicializar activeImage con la imagen principal del producto (thumbnail)
-        setActiveImage(data.thumbnail || '');
-
+        // Inicializar activeImage con la imagen principal del producto si no está definida
+        setActiveImage((prev) => prev || data.thumbnail || '');
         setLoading(false);
       } catch (err) {
         console.error(err);
-        router.push('/');
+        // Si no tenemos producto en caché ni en API, redirigir
+        if (!sessionStorage.getItem(cacheKeyProduct)) {
+          router.push('/');
+        }
       }
     }
     fetchProduct();
   }, [slug]);
 
-  // Recalcular precio unitario al cambiar especificaciones
+  // Recalcular precio unitario al cambiar especificaciones y persistir en caché
   useEffect(() => {
     if (!product) return;
     const { unitPrice: calculatedPrice } = calculateDynamicPrice(product, selectedSpecs);
     setUnitPrice(calculatedPrice);
-  }, [selectedSpecs, product]);
+
+    if (Object.keys(selectedSpecs).length > 0) {
+      try {
+        sessionStorage.setItem(`printear_cache_specs_${slug}`, JSON.stringify(selectedSpecs));
+      } catch (_) {}
+    }
+  }, [selectedSpecs, product, slug]);
 
   const handleAddToCart = () => {
     if (!product) return;
