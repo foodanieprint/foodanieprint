@@ -156,6 +156,10 @@ export default function AdminPage() {
   const [newVariantValue, setNewVariantValue] = useState<string>('');
   const [newVariantBasePrice, setNewVariantBasePrice] = useState<string>('50.00');
   const [selectedVariantOptionNames, setSelectedVariantOptionNames] = useState<string[]>([]);
+  const [showCopyOptionsModal, setShowCopyOptionsModal] = useState<boolean>(false);
+  const [copySourceVariant, setCopySourceVariant] = useState<string>('');
+  const [showAddGroupToVariantModal, setShowAddGroupToVariantModal] = useState<boolean>(false);
+  const [selectedGroupToAddToVariant, setSelectedGroupToAddToVariant] = useState<string>('');
 
   // Matriz de precios multidimensional (SinaLite Grid)
   const [newProdPricingMatrix, setNewProdPricingMatrix] = useState<Array<{ id?: string; specs: Record<string, string>; price: string }>>([]);
@@ -403,13 +407,23 @@ export default function AdminPage() {
 
   // 4. Configurar Specs en fila para base products
   const handleAddSpecRow = () => {
+    const isVariantActive = !!(activeSizeFilter && activeSizeFilter !== '__ALL__');
+    const baseGroup = (variantBaseGroup || 'size').toLowerCase();
+
     const filteredOptions = globalOptions.filter((opt: any) => !newProdCategoryId || isOptionInCategory(opt, newProdCategoryId));
-    const defaultGroup = filteredOptions[0]?.name || 'Material';
-    const selectedOpt = filteredOptions.find((o: any) => o.name === defaultGroup);
+
+    // When an Option Variant is active, choose a child group (not the base variant dimension itself)
+    const availableGroups = isVariantActive
+      ? filteredOptions.filter((opt: any) => opt.name?.toLowerCase() !== baseGroup && opt.name?.toLowerCase() !== 'size')
+      : filteredOptions;
+
+    const targetOptions = availableGroups.length > 0 ? availableGroups : filteredOptions;
+    const defaultGroup = targetOptions[0]?.name || (isVariantActive ? 'Orientation' : 'Material');
+    const selectedOpt = globalOptions.find((o: any) => o.name === defaultGroup) || targetOptions.find((o: any) => o.name === defaultGroup);
+    
     let defaultValue = '';
     let defaultMarkup = '0';
     let defaultMarkupType = 'FLAT';
-    let defaultIsBasePrice = false;
     let defaultHoriz = '0';
     let defaultVert = '0';
     let defaultImageUrl = '';
@@ -417,23 +431,78 @@ export default function AdminPage() {
       defaultValue = selectedOpt.attributes[0].value;
       defaultMarkup = String(selectedOpt.attributes[0].priceMarkup);
       defaultMarkupType = selectedOpt.attributes[0].markupType || 'FLAT';
-      defaultIsBasePrice = selectedOpt.attributes[0].isBasePrice || false;
       defaultHoriz = String(selectedOpt.attributes[0].horizontal || '0');
       defaultVert = String(selectedOpt.attributes[0].vertical || '0');
       defaultImageUrl = selectedOpt.attributes[0].imageUrl || '';
     }
-    const isSize = defaultGroup.toLowerCase() === 'size';
+
+    const parentVal = isVariantActive ? activeSizeFilter : undefined;
+    const isBasePrice = isVariantActive ? false : (selectedOpt?.attributes?.[0]?.isBasePrice || false);
+
     setNewProdSpecs([...newProdSpecs, { 
       group: defaultGroup, 
       value: defaultValue, 
       priceMarkup: defaultMarkup,
       markupType: defaultMarkupType,
-      isBasePrice: defaultIsBasePrice,
+      isBasePrice: isBasePrice,
       horizontal: defaultHoriz,
       vertical: defaultVert,
       imageUrl: defaultImageUrl,
-      parentValue: !isSize && activeSizeFilter ? activeSizeFilter : undefined
+      parentValue: parentVal
     }]);
+  };
+
+  const handleCopyOptionsToVariant = (sourceVal: string, targetVal: string) => {
+    if (!sourceVal || !targetVal) return;
+    const childSpecsToClone = newProdSpecs.filter(s => s.parentValue === sourceVal);
+    if (childSpecsToClone.length === 0) {
+      alert(`The source variant "${sourceVal}" has no options to copy.`);
+      return;
+    }
+    const clonedChildren = childSpecsToClone.map(child => ({
+      group: child.group,
+      value: child.value,
+      horizontal: child.horizontal || '0',
+      vertical: child.vertical || '0',
+      priceMarkup: child.priceMarkup || '0',
+      markupType: child.markupType || 'FLAT',
+      isBasePrice: false,
+      imageUrl: child.imageUrl || '',
+      parentValue: targetVal
+    }));
+    const uniqueCloned = clonedChildren.filter(
+      c => !newProdSpecs.some(existing => existing.group === c.group && existing.value === c.value && existing.parentValue === targetVal)
+    );
+    setNewProdSpecs([...newProdSpecs, ...uniqueCloned]);
+    setShowCopyOptionsModal(false);
+  };
+
+  const handleAddGroupToVariant = (groupName: string, targetVal: string) => {
+    if (!groupName || !targetVal) return;
+    const matchingOpt = globalOptions.find((o: any) => o.name === groupName);
+    if (!matchingOpt || !Array.isArray(matchingOpt.attributes) || matchingOpt.attributes.length === 0) {
+      alert(`The option "${groupName}" has no attributes defined.`);
+      return;
+    }
+    const newChildren = matchingOpt.attributes
+      .filter((attr: any) => !newProdSpecs.some(s => s.group === groupName && s.value === attr.value && s.parentValue === targetVal))
+      .map((attr: any) => ({
+        group: groupName,
+        value: attr.value,
+        horizontal: String(attr.horizontal || '0'),
+        vertical: String(attr.vertical || '0'),
+        priceMarkup: String(attr.priceMarkup || '0'),
+        markupType: attr.markupType || 'FLAT',
+        isBasePrice: false,
+        imageUrl: attr.imageUrl || '',
+        parentValue: targetVal
+      }));
+    if (newChildren.length === 0) {
+      alert(`All attributes of "${groupName}" are already in this variant.`);
+      return;
+    }
+    setNewProdSpecs([...newProdSpecs, ...newChildren]);
+    setShowAddGroupToVariantModal(false);
   };
 
   const handleRemoveSpecRow = (idx: number) => {
@@ -452,7 +521,7 @@ export default function AdminPage() {
             newRow.value = selectedOpt.attributes[0].value;
             newRow.priceMarkup = String(selectedOpt.attributes[0].priceMarkup);
             newRow.markupType = selectedOpt.attributes[0].markupType || 'FLAT';
-            newRow.isBasePrice = selectedOpt.attributes[0].isBasePrice || false;
+            newRow.isBasePrice = row.parentValue ? false : (selectedOpt.attributes[0].isBasePrice || false);
             newRow.horizontal = String(selectedOpt.attributes[0].horizontal || '0');
             newRow.vertical = String(selectedOpt.attributes[0].vertical || '0');
             newRow.imageUrl = selectedOpt.attributes[0].imageUrl || '';
@@ -1888,7 +1957,7 @@ export default function AdminPage() {
                       Select an Option Variant below to configure its unique base price and specific option markups.
                     </span>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button 
                       type="button" 
                       className="btn btn-primary btn-sm" 
@@ -1907,9 +1976,49 @@ export default function AdminPage() {
                     >
                       <Plus size={14} /> Add Option Variant
                     </button>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddSpecRow} style={{ padding: '7px 12px' }}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddSpecRow} style={{ padding: '7px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Plus size={12} /> Add Specification Choice
                     </button>
+                    {activeSizeFilter && activeSizeFilter !== '__ALL__' && (
+                      <>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => {
+                            const childOpts = globalOptions.filter((o: any) => o.name?.toLowerCase() !== (variantBaseGroup || 'size').toLowerCase() && o.attributes?.length > 0);
+                            setSelectedGroupToAddToVariant(childOpts[0]?.name || '');
+                            setShowAddGroupToVariantModal(true);
+                          }} 
+                          style={{ padding: '7px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                          title={`Add an option group (e.g. Qty, Orientation) into variant ${activeSizeFilter}`}
+                        >
+                          <Layers size={13} /> Add Option Group
+                        </button>
+                        {(() => {
+                          const baseVariantSpecs = newProdSpecs.filter(s => 
+                            s.isBasePrice || (!s.parentValue && newProdSpecs.some(child => child.parentValue === s.value))
+                          );
+                          const otherVariantsWithChildren = baseVariantSpecs.filter(
+                            v => v.value !== activeSizeFilter && newProdSpecs.some(s => s.parentValue === v.value)
+                          );
+                          if (otherVariantsWithChildren.length === 0) return null;
+                          return (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                setCopySourceVariant(otherVariantsWithChildren[0]?.value || '');
+                                setShowCopyOptionsModal(true);
+                              }}
+                              style={{ padding: '7px 12px', display: 'flex', alignItems: 'center', gap: '6px', color: '#0369a1', borderColor: '#bae6fd', background: '#f0f9ff' }}
+                              title={`Copy child options from another variant into variant ${activeSizeFilter}`}
+                            >
+                              <Copy size={13} /> Copy from Variant
+                            </button>
+                          );
+                        })()}
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -2112,7 +2221,7 @@ export default function AdminPage() {
                     .map((row, originalIdx) => ({ row, originalIdx }))
                     .filter(({ row }) => {
                       if (!activeSizeFilter || activeSizeFilter === '__ALL__') return true;
-                      if (row.isBasePrice || !row.parentValue) {
+                      if (!row.parentValue) {
                         return row.value === activeSizeFilter;
                       }
                       // For child specs, show if it belongs to this variant value
@@ -2197,7 +2306,7 @@ export default function AdminPage() {
                                     horizontal: horiz,
                                     vertical: vert,
                                     markupType: markupType,
-                                    isBasePrice: isBase,
+                                    isBasePrice: r.parentValue ? false : isBase,
                                     imageUrl: img || r.imageUrl || ''
                                   };
                                   return r;
@@ -2317,6 +2426,71 @@ export default function AdminPage() {
                       </button>
                     </div>
                   ))}
+
+                  {/* Empty state when an active variant has 0 child options */}
+                  {activeSizeFilter && activeSizeFilter !== '__ALL__' && newProdSpecs.filter(s => s.parentValue === activeSizeFilter).length === 0 && (
+                    <div style={{
+                      padding: '24px 20px',
+                      background: '#f8fafc',
+                      border: '1.5px dashed #cbd5e1',
+                      borderRadius: '10px',
+                      textAlign: 'center',
+                      marginTop: '6px'
+                    }}>
+                      <p style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                        No child options inside variant &quot;{activeSizeFilter}&quot; yet
+                      </p>
+                      <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        Add specification choices (e.g. Orientation, Quantity, Paper Stock, Coating) specifically configured for this variant.
+                      </p>
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={handleAddSpecRow}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Plus size={13} /> Add Single Choice
+                        </button>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => {
+                            const childOpts = globalOptions.filter((o: any) => o.name?.toLowerCase() !== (variantBaseGroup || 'size').toLowerCase() && o.attributes?.length > 0);
+                            setSelectedGroupToAddToVariant(childOpts[0]?.name || '');
+                            setShowAddGroupToVariantModal(true);
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Layers size={13} /> Add Option Group (e.g. Qty, Orientation)
+                        </button>
+                        {(() => {
+                          const baseVariantSpecs = newProdSpecs.filter(s => 
+                            s.isBasePrice || (!s.parentValue && newProdSpecs.some(child => child.parentValue === s.value))
+                          );
+                          const otherVariantsWithChildren = baseVariantSpecs.filter(
+                            v => v.value !== activeSizeFilter && newProdSpecs.some(s => s.parentValue === v.value)
+                          );
+                          if (otherVariantsWithChildren.length === 0) return null;
+                          const src = otherVariantsWithChildren[0];
+                          const cnt = newProdSpecs.filter(s => s.parentValue === src.value).length;
+                          return (
+                            <button 
+                              type="button" 
+                              className="btn btn-primary btn-sm" 
+                              onClick={() => {
+                                setCopySourceVariant(src.value);
+                                setShowCopyOptionsModal(true);
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--accent-primary)' }}
+                            >
+                              <Copy size={13} /> Copy All Options from {src.value} ({cnt} options)
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -4482,6 +4656,204 @@ export default function AdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL: COPY OPTIONS FROM ANOTHER VARIANT */}
+      {showCopyOptionsModal && activeSizeFilter && activeSizeFilter !== '__ALL__' && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '460px',
+            maxWidth: '92%',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                  📋 Copy Options to &quot;{activeSizeFilter}&quot;
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                  Clone all child options (Orientation, Qty, Coating...) from another variant.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCopyOptionsModal(false)}
+                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                  Source Variant to Copy From
+                </label>
+                <select
+                  className="input-field"
+                  value={copySourceVariant}
+                  onChange={(e) => setCopySourceVariant(e.target.value)}
+                  style={{ padding: '8px 10px', fontSize: '13px' }}
+                >
+                  {(() => {
+                    const baseVariantSpecs = newProdSpecs.filter(s => 
+                      s.isBasePrice || (!s.parentValue && newProdSpecs.some(child => child.parentValue === s.value))
+                    );
+                    const candidates = baseVariantSpecs.filter(
+                      v => v.value !== activeSizeFilter && newProdSpecs.some(s => s.parentValue === v.value)
+                    );
+                    return candidates.map(v => {
+                      const cnt = newProdSpecs.filter(s => s.parentValue === v.value).length;
+                      return (
+                        <option key={v.value} value={v.value}>
+                          {v.group}: {v.value} ({cnt} options configured)
+                        </option>
+                      );
+                    });
+                  })()}
+                </select>
+              </div>
+
+              {copySourceVariant && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '10px 12px', fontSize: '12px', color: '#166534' }}>
+                  ✨ <strong>{newProdSpecs.filter(s => s.parentValue === copySourceVariant).length} child options</strong> will be cloned into <strong>{activeSizeFilter}</strong>.
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowCopyOptionsModal(false)}
+                style={{ padding: '8px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => handleCopyOptionsToVariant(copySourceVariant, activeSizeFilter)}
+                style={{ padding: '8px 18px', fontWeight: '700', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Copy size={13} /> Copy Options
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD OPTION GROUP TO VARIANT */}
+      {showAddGroupToVariantModal && activeSizeFilter && activeSizeFilter !== '__ALL__' && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            width: '460px',
+            maxWidth: '92%',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                  ✨ Add Option Group to &quot;{activeSizeFilter}&quot;
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                  Add all choices from an option template into this variant.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddGroupToVariantModal(false)}
+                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                  Select Option Group
+                </label>
+                <select
+                  className="input-field"
+                  value={selectedGroupToAddToVariant}
+                  onChange={(e) => setSelectedGroupToAddToVariant(e.target.value)}
+                  style={{ padding: '8px 10px', fontSize: '13px' }}
+                >
+                  {globalOptions
+                    .filter((o: any) => o.name?.toLowerCase() !== (variantBaseGroup || 'size').toLowerCase() && o.attributes?.length > 0)
+                    .map((opt: any) => (
+                      <option key={opt.id} value={opt.name}>
+                        {opt.name} ({opt.attributes.length} attributes)
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {(() => {
+                const opt = globalOptions.find((o: any) => o.name === selectedGroupToAddToVariant);
+                if (!opt || !opt.attributes) return null;
+                return (
+                  <div style={{ background: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '10px 12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Attributes that will be added: <strong>{opt.attributes.map((a: any) => a.value).join(', ')}</strong>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '14px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowAddGroupToVariantModal(false)}
+                style={{ padding: '8px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => handleAddGroupToVariant(selectedGroupToAddToVariant, activeSizeFilter)}
+                style={{ padding: '8px 18px', fontWeight: '700', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Plus size={13} /> Add Group Choices
+              </button>
+            </div>
           </div>
         </div>
       )}
