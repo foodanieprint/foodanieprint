@@ -465,6 +465,8 @@ productsRouter.post('/duplicate', async (req: AuthenticatedRequest, res: Respons
             bleedMm: original.bleedMm,
             dpi: original.dpi,
             globalOptionIds: original.globalOptionIds || [],
+            pricingMatrix: original.pricingMatrix || null,
+            exclusionRules: original.exclusionRules || null,
             categoryId: original.categoryId || null,
             isFeatured: false // Reset featured flag on duplicated product
           }
@@ -482,7 +484,8 @@ productsRouter.post('/duplicate', async (req: AuthenticatedRequest, res: Respons
               imageUrl: s.imageUrl || null,
               position: typeof s.position === 'number' ? s.position : idx,
               horizontal: typeof s.horizontal === 'number' ? s.horizontal : 0,
-              vertical: typeof s.vertical === 'number' ? s.vertical : 0
+              vertical: typeof s.vertical === 'number' ? s.vertical : 0,
+              parentValue: s.parentValue || null
             }))
           });
         }
