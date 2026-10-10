@@ -684,7 +684,7 @@ export default function AdminPage() {
     setNewProdCategoryId(product.categoryId || '');
     setSelectedGlobalOptionIds(product.globalOptionIds || []);
     
-    const mappedSpecs = (product.specs || []).map((spec: any) => ({
+    const rawMappedSpecs = (product.specs || []).map((spec: any) => ({
       id: spec.id,
       group: spec.group,
       value: spec.value,
@@ -696,6 +696,22 @@ export default function AdminPage() {
       imageUrl: spec.imageUrl || '',
       parentValue: spec.parentValue || ''
     }));
+
+    // Auto-reconcile legacy specs that don't have parentValue:
+    // If a product has variant options (e.g. Size: 4x6, 5x7) but its child specs (e.g. Orientation, Qty)
+    // have empty parentValue because they were created in older versions or loaded sequentially:
+    let runningParent = '';
+    const mappedSpecs = rawMappedSpecs.map((spec: any) => {
+      if (spec.isBasePrice || (!spec.parentValue && rawMappedSpecs.some((s: any) => s.isBasePrice && s.value === spec.value))) {
+        runningParent = spec.value;
+        return spec;
+      }
+      if (!spec.parentValue && runningParent) {
+        return { ...spec, parentValue: runningParent };
+      }
+      return spec;
+    });
+
     setNewProdSpecs(mappedSpecs);
     
     // Detect base variant group (either Size or any group that has children with parentValue or isBasePrice)
@@ -2407,14 +2423,45 @@ export default function AdminPage() {
                         </button>
                       </div>
 
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', width: '110px' }}>
+                      {/* Parent Variant Badge / Selector */}
+                      <div style={{ flex: 1.1, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Variant:</span>
+                        <select
+                          className="input-field"
+                          style={{ padding: '6px 8px', fontSize: '11px', flex: 1, background: row.parentValue ? '#f0fdf4' : (row.isBasePrice ? '#f8fafc' : '#fffbeb'), borderColor: row.parentValue ? '#86efac' : (row.isBasePrice ? '#cbd5e1' : '#fde68a') }}
+                          value={row.parentValue || (row.isBasePrice ? '__BASE__' : '')}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '__BASE__') {
+                              handleSpecRowChange(idx, 'isBasePrice', true);
+                              handleSpecRowChange(idx, 'parentValue', '');
+                            } else {
+                              handleSpecRowChange(idx, 'parentValue', val);
+                              if (val) handleSpecRowChange(idx, 'isBasePrice', false);
+                            }
+                          }}
+                        >
+                          <option value="__BASE__">🌟 Variant Definition</option>
+                          <option value="">(Global / All Variants)</option>
+                          {(() => {
+                            const baseVariants = newProdSpecs.filter(s => s.isBasePrice || (!s.parentValue && newProdSpecs.some(c => c.parentValue === s.value)));
+                            return baseVariants.map((b, bIdx) => (
+                              <option key={`${b.value}-${bIdx}`} value={b.value}>
+                                Inside {b.group}: {b.value}
+                              </option>
+                            ));
+                          })()}
+                        </select>
+                      </div>
+
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', width: '100px' }}>
                         <input
                           type="checkbox"
                           checked={row.isBasePrice || false}
                           onChange={(e) => handleSpecRowChange(idx, 'isBasePrice', e.target.checked)}
                           style={{ accentColor: 'var(--accent-primary)' }}
                         />
-                        <span>Is Base Price</span>
+                        <span>Is Base</span>
                       </label>
 
                       <button 
@@ -2443,6 +2490,36 @@ export default function AdminPage() {
                       <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
                         Add specification choices (e.g. Orientation, Quantity, Paper Stock, Coating) specifically configured for this variant.
                       </p>
+
+                      {/* If there are unparented specs in the product, offer 1-click button to attach them to this variant */}
+                      {(() => {
+                        const unparentedSpecs = newProdSpecs.filter(s => !s.parentValue && !s.isBasePrice);
+                        if (unparentedSpecs.length === 0) return null;
+                        return (
+                          <div style={{ margin: '0 auto 16px auto', maxWidth: '520px', padding: '10px 14px', background: '#fefce8', border: '1px solid #fef08a', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                            <span style={{ fontSize: '12px', color: '#854d0e', textAlign: 'left' }}>
+                              Found <strong>{unparentedSpecs.length} unassigned specifications</strong> (e.g. {unparentedSpecs.slice(0, 3).map(u => `${u.group}: ${u.value}`).join(', ')}).
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => {
+                                const updated = newProdSpecs.map(s => {
+                                  if (!s.parentValue && !s.isBasePrice) {
+                                    return { ...s, parentValue: activeSizeFilter };
+                                  }
+                                  return s;
+                                });
+                                setNewProdSpecs(updated);
+                              }}
+                              style={{ background: '#ca8a04', color: '#ffffff', fontWeight: '700', fontSize: '11px', whiteSpace: 'nowrap', padding: '6px 12px' }}
+                            >
+                              Assign all to &quot;{activeSizeFilter}&quot;
+                            </button>
+                          </div>
+                        );
+                      })()}
+
                       <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
                         <button 
                           type="button" 
